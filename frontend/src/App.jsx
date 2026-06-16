@@ -1,0 +1,653 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowRight,
+  CalendarDays,
+  Globe2,
+  Headphones,
+  Instagram,
+  Menu,
+  Music2,
+  Play,
+  Radio,
+  Sparkles,
+  Ticket,
+  Users,
+  X,
+  Youtube,
+  Zap,
+} from "lucide-react";
+import MediaGallery from "./components/MediaGallery";
+import {
+  BOOKING_FEATURES,
+  EVENTS,
+  GALLERY_ITEMS,
+  HIGHLIGHT_REEL_EMBED,
+  MUSIC_MIXES,
+  SOCIAL_LINKS,
+  STATS,
+  TIMELINE,
+  TRUSTED_BY,
+  VENUES,
+} from "./data/siteData";
+import { supabase } from "./lib/supabase";
+
+const NAV_LINKS = ["Home", "About", "Events", "Gallery", "Press Kit", "Contact"];
+
+function useCountUp(target, duration = 1800, active = false) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    let frame;
+    const start = performance.now();
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setCount(Math.floor(target * (1 - (1 - progress) ** 3)));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration, active]);
+
+  return count;
+}
+
+function useReveal() {
+  useEffect(() => {
+    const elements = document.querySelectorAll("[data-reveal]");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 },
+    );
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
+}
+
+function Container({ children, narrow = false }) {
+  return <div className={`container${narrow ? " container--narrow" : ""}`}>{children}</div>;
+}
+
+function SectionLabel({ children }) {
+  return <p className="section-label">{children}</p>;
+}
+
+function SectionHeading({ label, title, copy, align = "left" }) {
+  return (
+    <div className={`section-heading section-heading--${align}`} data-reveal>
+      <SectionLabel>{label}</SectionLabel>
+      <h2>{title}</h2>
+      {copy && <p>{copy}</p>}
+    </div>
+  );
+}
+
+function StatCard({ stat, active }) {
+  const count = useCountUp(stat.value, 1800, active);
+  return (
+    <div className="stat-card">
+      <strong>{count.toLocaleString()}{stat.suffix}</strong>
+      <span>{stat.label}</span>
+    </div>
+  );
+}
+
+function SocialIcon({ name }) {
+  const icons = {
+    Instagram,
+    TikTok: Music2,
+    SoundCloud: Radio,
+    YouTube: Youtube,
+  };
+  const Icon = icons[name] || Music2;
+  return <Icon size={17} aria-hidden="true" />;
+}
+
+function App() {
+  const [scrollY, setScrollY] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const [activeTimeline, setActiveTimeline] = useState(0);
+  const [eventTab, setEventTab] = useState("upcoming");
+  const [heroVideoFailed, setHeroVideoFailed] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    company: "",
+    event: "",
+    email: "",
+    message: "",
+  });
+  const [formSent, setFormSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const statsRef = useRef(null);
+
+  useReveal();
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => entry.isIntersecting && setStatsVisible(true),
+      { threshold: 0.35 },
+    );
+    if (statsRef.current) observer.observe(statsRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollTo = (id) => {
+    document.getElementById(id.toLowerCase().replaceAll(" ", "-"))?.scrollIntoView({ behavior: "smooth" });
+    setMenuOpen(false);
+  };
+
+  const handleSubmit = async (event) => {
+  event.preventDefault();
+
+  setIsSubmitting(true);
+
+  try {
+    // Tester: await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const { error } = await supabase
+      .from("enquiries")
+      .insert([
+        {
+          name: contactForm.name,
+          company: contactForm.company,
+          event_type: contactForm.event,
+          email: contactForm.email,
+          message: contactForm.message,
+        },
+      ]);
+
+    if (!error) {
+      setFormSent(true);
+
+      setContactForm({
+        name: "",
+        company: "",
+        event: "",
+        email: "",
+        message: "",
+      });
+    } else {
+      console.error("SUPABASE ERROR:", error);
+      alert(error.message);
+    }
+  } finally {
+    setIsSubmitting(false);
+    }
+  };
+
+  const filteredEvents = EVENTS.filter((event) => event.status === eventTab);
+
+  return (
+    <div className="site-shell">
+      <nav className={`nav ${scrollY > 60 ? "nav--scrolled" : ""}`}>
+        <button className="wordmark" onClick={() => scrollTo("Home")} aria-label="Go to home">
+          K&amp;P
+        </button>
+        <div className={`nav__links ${menuOpen ? "nav__links--open" : ""}`}>
+          {NAV_LINKS.map((link) => (
+            <button key={link} onClick={() => scrollTo(link)}>
+              {link}
+            </button>
+          ))}
+          <button className="button button--gold nav__book" onClick={() => scrollTo("Contact")}>
+            Book Us
+          </button>
+        </div>
+        <button
+          className="nav__toggle"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label="Toggle navigation"
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? <X /> : <Menu />}
+        </button>
+      </nav>
+
+      <header id="home" className={`hero ${heroVideoFailed ? "hero--fallback" : ""}`}>
+        {!heroVideoFailed && (
+          <video
+            className="hero__video"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster="/media/images/hero-fallback.jpg"
+            onError={() => setHeroVideoFailed(true)}
+          >
+            <source src="/media/hero-video.mp4" type="video/mp4" />
+          </video>
+        )}
+        <div className="hero__overlay" />
+        <div className="hero__grain" />
+        <div
+          className="hero__content"
+          style={{
+            opacity: Math.max(0, 1 - scrollY / 600),
+            transform: `translateY(${scrollY * 0.25}px)`,
+          }}
+        >
+          <p className="eyebrow">Christchurch · New Zealand</p>
+          <h1>
+            Kava <span>&amp; Pyramids</span>
+          </h1>
+          <p className="hero__tagline">From Christchurch to the World</p>
+          <div className="hero__actions">
+            <button className="button button--outline" onClick={() => scrollTo("Events")}>
+              View Events
+            </button>
+            <button className="button button--gold" onClick={() => scrollTo("Contact")}>
+              Book Us
+            </button>
+          </div>
+        </div>
+        <div className="hero__scroll">
+          <span />
+          Scroll
+        </div>
+      </header>
+
+      <main>
+        <section className="movement section">
+          <Container>
+            <div className="movement__grid">
+              <div className="video-frame" data-reveal>
+                {HIGHLIGHT_REEL_EMBED.includes("VIDEO_ID") ? (
+                  <div className="video-frame__placeholder">
+                    <span className="play-button"><Play fill="currentColor" /></span>
+                    <p>Highlight reel coming soon</p>
+                    <small>Add a YouTube or Vimeo embed URL in siteData.js</small>
+                  </div>
+                ) : (
+                  <iframe
+                    src={HIGHLIGHT_REEL_EMBED}
+                    title="Kava & Pyramids highlight reel"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                )}
+              </div>
+              <div data-reveal>
+                <SectionLabel>Watch the Movement</SectionLabel>
+                <h2>See Why Crowds Keep Coming Back</h2>
+                <div className="movement__beats">
+                  <span>High-energy crowds.</span>
+                  <span>Packed dancefloors.</span>
+                  <span>Festival appearances.</span>
+                  <span>International performances.</span>
+                </div>
+                <p>
+                  From Christchurch clubs to stages across New Zealand, Fiji and Australia,
+                  Kava &amp; Pyramids have built a reputation for unforgettable nights.
+                </p>
+                <a className="text-link" href="https://www.youtube.com/@KavaPyramids" target="_blank" rel="noreferrer">
+                  Watch Full Sets <ArrowRight size={16} />
+                </a>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <section className="stats" ref={statsRef}>
+          <Container>
+            <div className="stats__grid">
+              {STATS.map((stat) => (
+                <StatCard stat={stat} active={statsVisible} key={stat.label} />
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        <section className="trusted section section--compact">
+          <Container>
+            <SectionHeading label="Trusted By" title="Stages That Know Our Energy" align="center" />
+            <div className="trusted__grid">
+              {TRUSTED_BY.map((venue) => (
+                <article className="trusted-card" key={venue.name} data-reveal>
+                  <div className="trusted-card__mark">{venue.initials}</div>
+                  <h3>{venue.name}</h3>
+                  <p>{venue.type}</p>
+                </article>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        <section className="featured-event">
+          <Container>
+            <div className="featured-event__content" data-reveal>
+              <div>
+                <SectionLabel>Next Up</SectionLabel>
+                <h2>Wonderland Brisbane</h2>
+                <p>27 June 2026 · Brisbane, Australia</p>
+              </div>
+              <div className="date-block">
+                <span><strong>27</strong>June</span>
+                <span><strong>2026</strong>Australia</span>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <section id="about" className="section about">
+          <Container>
+            <div className="about__grid">
+              <div data-reveal>
+                <SectionLabel>Our Story</SectionLabel>
+                <h2>Two friends.<br /><span>One movement.</span></h2>
+                <p>
+                  They met in high school in 2018. Five years later, they found themselves in
+                  Christchurch, both studying, both restless. DJing started as something to do.
+                  It became something to build.
+                </p>
+                <p>
+                  Fijian and Egyptian roots collide in a city at the bottom of the world,
+                  creating a sound and presence that never fits neatly into one box.
+                </p>
+                <p>
+                  By 2025 they were playing peak-time slots at Original Sin, performing
+                  internationally in Fiji, and taking on festival stages. In 2026, Australia.
+                </p>
+                <button className="button button--outline" onClick={() => scrollTo("Contact")}>
+                  Book a Show
+                </button>
+              </div>
+              <div className="timeline" data-reveal>
+                {TIMELINE.map((item, index) => (
+                  <button
+                    className={`timeline__item ${activeTimeline === index ? "timeline__item--active" : ""}`}
+                    key={item.year}
+                    onClick={() => setActiveTimeline(index)}
+                  >
+                    <span>{item.year}</span>
+                    <div>
+                      <strong>{item.title}</strong>
+                      {activeTimeline === index && <p>{item.desc}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <section className="heritage section section--dark">
+          <Container>
+            <div className="heritage__grid">
+              <article data-reveal>
+                <SectionLabel>Fijian Heritage</SectionLabel>
+                <h3>Kava</h3>
+                <p>
+                  Ceremony, community, and the spirit of the Pacific. Kava represents warmth,
+                  connection, and bringing people together, exactly what happens on every dancefloor.
+                </p>
+              </article>
+              <article data-reveal>
+                <SectionLabel>Egyptian Heritage</SectionLabel>
+                <h3>Pyramids</h3>
+                <p>
+                  Monuments to ambition and craft. The name carries the belief that when something
+                  is built with intention, it endures. That is the energy behind every set.
+                </p>
+              </article>
+            </div>
+          </Container>
+        </section>
+
+        <section id="events" className="section events">
+          <Container>
+            <SectionHeading
+              label="Events"
+              title="Upcoming & Past Highlights"
+              copy="From home-city club nights to international festival stages."
+            />
+            <div className="tabs" role="tablist" aria-label="Event filters">
+              {["upcoming", "past"].map((tab) => (
+                <button
+                  key={tab}
+                  className={eventTab === tab ? "is-active" : ""}
+                  onClick={() => setEventTab(tab)}
+                  role="tab"
+                  aria-selected={eventTab === tab}
+                >
+                  {tab === "upcoming" ? "Upcoming Events" : "Past Highlights"}
+                </button>
+              ))}
+            </div>
+            <div className="events__list">
+              {filteredEvents.map((event) => (
+                <article className="event-card" key={event.name} data-reveal>
+                  <div className="event-card__date">
+                    <CalendarDays size={18} />
+                    <span>{event.date}</span>
+                  </div>
+                  <div>
+                    <h3>{event.name}</h3>
+                    <p>{event.location}</p>
+                  </div>
+                  <span className="pill">{event.type}</span>
+                </article>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        <section id="listen" className="section section--dark music">
+          <Container>
+            <SectionHeading
+              label="Listen"
+              title="The Sound of Kava & Pyramids"
+              copy="Open-format sets built for club rooms, festival fields, and everything between."
+              align="center"
+            />
+            <div className="music__grid">
+              {MUSIC_MIXES.map((mix, index) => (
+                <article className="music-card" key={mix.title} data-reveal>
+                  <div className="music-card__art">
+                    <Headphones size={34} />
+                    <span>Mix 0{index + 1}</span>
+                  </div>
+                  <div className="music-card__body">
+                    <p>{mix.genre}</p>
+                    <h3>{mix.title}</h3>
+                    <iframe
+                      title={`${mix.title} SoundCloud player`}
+                      width="100%"
+                      height="120"
+                      scrolling="no"
+                      frameBorder="no"
+                      allow="autoplay"
+                      loading="lazy"
+                      src={mix.embed}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        <section id="gallery" className="section gallery">
+          <Container>
+            <SectionHeading
+              label="Gallery"
+              title="On the Road"
+              copy="Crowds, travel, festivals, and the moments between sets."
+            />
+            <MediaGallery items={GALLERY_ITEMS} />
+          </Container>
+        </section>
+
+        <section className="section why-book">
+          <Container>
+            <SectionHeading
+              label="For Promoters"
+              title="Why Promoters Book Kava & Pyramids"
+              copy="Big-stage energy backed by reliable, professional delivery."
+              align="center"
+            />
+            <div className="why-book__grid">
+              {BOOKING_FEATURES.map((feature, index) => {
+                const icons = [Zap, Users, Globe2, Radio, Music2, Ticket];
+                const Icon = icons[index];
+                return (
+                  <article className="feature-card" key={feature.title} data-reveal>
+                    <Icon size={25} />
+                    <h3>{feature.title}</h3>
+                    <p>{feature.description}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </Container>
+        </section>
+
+        <section id="press-kit" className="section section--dark press">
+          <Container>
+            <div className="press__grid">
+              <div data-reveal>
+                <SectionLabel>Press Kit</SectionLabel>
+                <h2>For Promoters &amp; Media</h2>
+                <p>
+                  Kava &amp; Pyramids formed in 2023 and stepped onto the Christchurch scene in
+                  2024. By 2025 they were holding peak-time slots at Original Sin and performing
+                  internationally in Fiji.
+                </p>
+                <p>
+                  Known for high-energy sets across Hip-Hop, R&amp;B, Top 40, and global club
+                  sounds, they read the room and keep it moving.
+                </p>
+                <div className="button-row">
+                  <a className="button button--gold" href="mailto:kavapyramids@gmail.com?subject=EPK%20Request">
+                    Request EPK
+                  </a>
+                  <a className="button button--outline" href="mailto:kavapyramids@gmail.com">
+                    Email Us
+                  </a>
+                </div>
+              </div>
+              <div className="press__details" data-reveal>
+                <SectionLabel>Known For</SectionLabel>
+                {[
+                  "High-energy crowd engagement",
+                  "Seamless mixing and transitions",
+                  "Peak-time set experience",
+                  "University and festival shows",
+                  "International performance history",
+                ].map((item) => <p key={item}><Sparkles size={14} />{item}</p>)}
+                <SectionLabel>Genres</SectionLabel>
+                <div className="genre-list">
+                  {["Hip-Hop", "R&B", "Top 40", "Global Club"].map((genre) => <span key={genre}>{genre}</span>)}
+                </div>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <section id="gig-history" className="section gig-history">
+          <Container>
+            <SectionHeading label="Gig History" title="Every Stage, Every City" />
+            <div className="gig-history__grid">
+              {VENUES.map((group) => (
+                <article key={group.region} data-reveal>
+                  <SectionLabel>{group.region}</SectionLabel>
+                  {group.venues.map((venue) => <p key={venue}>{venue}</p>)}
+                </article>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        <section id="contact" className="section section--dark contact">
+          <Container narrow>
+            <SectionHeading
+              label="Contact"
+              title="Book Kava & Pyramids"
+              copy="For bookings, event enquiries, and press, send the details below."
+            />
+            {formSent ? (
+              <div className="form-success">
+                <Sparkles />
+                <h3>Enquiry Received</h3>
+                <p>Thanks for reaching out. Your enquiry has been sent successfully and we'll get back to you as soon as possible.
+                  You can also contact us directly via email if you have any urgent questions or additional information to share.
+                </p>
+                <a className="button button--gold" href="mailto:kavapyramids@gmail.com">Open Email</a>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <div className="form-grid">
+                  {[
+                    ["name", "Your Name", "text"],
+                    ["company", "Company / Venue", "text"],
+                    ["event", "Event Type", "text"],
+                    ["email", "Email Address", "email"],
+                  ].map(([name, label, type]) => (
+                    <label key={name}>
+                      <span>{label}</span>
+                      <input
+                        name={name}
+                        type={type}
+                        required
+                        value={contactForm[name]}
+                        onChange={(event) => setContactForm({ ...contactForm, [name]: event.target.value })}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <label className="form-message">
+                  <span>Message</span>
+                  <textarea
+                    name="message"
+                    rows="5"
+                    required
+                    value={contactForm.message}
+                    onChange={(event) => setContactForm({ ...contactForm, message: event.target.value })}
+                  />
+                </label>
+                <button
+                  className="button button--gold form-submit"
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Sending..." : "Send Enquiry"}
+                </button>
+              </form>
+            )}
+            <div className="socials">
+              {SOCIAL_LINKS.map((social) => (
+                <a key={social.name} href={social.url} target="_blank" rel="noreferrer">
+                  <SocialIcon name={social.name} />
+                  {social.name}
+                </a>
+              ))}
+            </div>
+          </Container>
+        </section>
+      </main>
+
+      <footer>
+        <p className="wordmark">KAVA &amp; PYRAMIDS</p>
+        <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
+        <small>© 2026 Kava &amp; Pyramids. All rights reserved.</small>
+      </footer>
+    </div>
+  );
+}
+
+export default App;
