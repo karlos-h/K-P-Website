@@ -293,3 +293,20 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
   [data-reveal] { opacity: 1; transform: none; }
 }
+
+/* Admin login page */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  padding: 3rem 2.5rem;
+  border: 1px solid #1e1e1e;
+  background: var(--panel);
+  text-align: center;
+}
