@@ -4,41 +4,12 @@ const soundCloudEmbed = `https://w.soundcloud.com/player/?url=${soundCloudProfil
 // Replace VIDEO_ID with a YouTube ID, or replace the full value with a Vimeo player URL.
 export const HIGHLIGHT_REEL_EMBED = "https://www.youtube-nocookie.com/embed/VIDEO_ID";
 
-export const STATS = [
-  { label: "Shows Played", value: 50, suffix: "+" },
-  { label: "Attendees Reached", value: 10000, suffix: "+" },
-  { label: "Countries", value: 3, suffix: "" },
-  { label: "Festivals", value: 4, suffix: "+" },
-];
-
-export const TRUSTED_BY = [
-  { name: "Original Sin", type: "Nightclub", initials: "OS" },
-  { name: "Rolling Meadows", type: "Festival", initials: "RM" },
-  { name: "University of Canterbury", type: "University", initials: "UC" },
-  { name: "Lincoln University", type: "University", initials: "LU" },
-  { name: "Wonderland Brisbane", type: "Festival", initials: "WB" },
-];
-
 export const TIMELINE = [
   { year: "2018", title: "The Beginning", desc: "Two high school students meet. This is where it starts." },
   { year: "2023", title: "Christchurch", desc: "The city becomes their proving ground." },
   { year: "2024", title: "Bar 185", desc: "Grassroots hosted events, building a name one night at a time." },
   { year: "2025", title: "Breakthrough", desc: "Original Sin, Rolling Meadows, Auckland, Dunedin, and Fiji." },
   { year: "2026", title: "The World", desc: "Brisbane and Wonderland take the movement international." },
-];
-
-export const EVENTS = [
-  { name: "Wonderland Brisbane", date: "27 June 2026", location: "Brisbane, Australia", type: "International", status: "upcoming" },
-  { name: "Original Sin", date: "2025", location: "Christchurch, New Zealand", type: "Nightclub", status: "past" },
-  { name: "Rolling Meadows", date: "2025", location: "Christchurch, New Zealand", type: "Festival", status: "past" },
-  { name: "UCSA Fresher 5", date: "2025", location: "Christchurch, New Zealand", type: "University", status: "past" },
-  { name: "Fiji Tour", date: "2025", location: "Fiji", type: "International", status: "past" },
-];
-
-export const MUSIC_MIXES = [
-  { title: "Club Mix", genre: "Peak-time energy", embed: soundCloudEmbed },
-  { title: "Hip-Hop & R&B Mix", genre: "Open-format favourites", embed: soundCloudEmbed },
-  { title: "Festival Mix", genre: "Big-stage moments", embed: soundCloudEmbed },
 ];
 
 // Replace these SVG placeholders with optimized JPG, WebP, or MP4 files in /public/gallery/.
@@ -66,6 +37,9 @@ export const SOCIAL_LINKS = [
   { name: "SoundCloud", url: "https://soundcloud.com/kavapyramids" },
   { name: "YouTube", url: "https://www.youtube.com/@KavaPyramids" },
 ];
+
+// Update this with your actual Linktree URL once confirmed
+export const LINKTREE_URL = "https://linktr.ee/kavapyramids";
 
 export const VENUES = [
   { region: "Christchurch", venues: ["Original Sin", "Bar 185", "Rolling Meadows Festival", "UCSA Fresher 5", "Lincoln University"] },

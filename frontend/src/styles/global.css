@@ -310,3 +310,309 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   background: var(--panel);
   text-align: center;
 }
+
+/* ── Nav external links ── */
+.nav__external-link {
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding: 0.25rem 0;
+  transition: color 0.2s;
+}
+.nav__external-link:hover { color: var(--gold); }
+
+/* ── Footer links ── */
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  justify-content: center;
+  margin: 1rem 0;
+}
+.footer__links a {
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  transition: color 0.2s;
+}
+.footer__links a:hover { color: var(--gold); }
+
+/* ── Media Hub CTA (homepage) ── */
+.media-hub-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 3.5rem;
+  padding: 2rem 2.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+.media-hub-cta h3 { margin-bottom: 0.4rem; font-size: 1.25rem; }
+.media-hub-cta p { margin: 0; font-size: 0.9rem; }
+
+/* ── Email Gate (Media Hub) ── */
+.email-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.email-gate__card {
+  width: min(480px, 100%);
+  padding: 3rem 2.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  text-align: center;
+}
+.email-gate__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--gold);
+  margin-bottom: 1.25rem;
+}
+.email-gate__card h2 { font-size: 2rem; margin-bottom: 0.75rem; }
+.email-gate__card p { margin-bottom: 1.75rem; }
+.email-gate__card form { display: grid; gap: 1rem; }
+.email-gate__card label { display: grid; gap: 0.4rem; text-align: left; }
+.email-gate__card label span { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+.email-gate__error { color: #e05c5c; font-size: 0.82rem; margin: 0; }
+.email-gate__disclaimer { font-size: 0.72rem; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 0.35rem; margin-top: 0.75rem; margin-bottom: 0; }
+
+/* ── Media Hub Grid ── */
+.media-hub__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.media-hub__item {
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  cursor: pointer;
+  background: var(--panel);
+}
+.media-hub__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.media-hub__item:hover img { transform: scale(1.04); }
+.media-hub__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+  gap: 0.4rem;
+}
+.media-hub__item:hover .media-hub__overlay { opacity: 1; }
+.media-hub__overlay strong { color: var(--cream); font-size: 0.95rem; }
+.media-hub__overlay span { color: var(--gold); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; }
+.media-hub__overlay .button { margin-top: 0.5rem; font-size: 0.8rem; min-height: 36px; padding: 0 1rem; }
+
+/* ── Gallery filter ── */
+.gallery-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+.gallery-filter__btn {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 2rem;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.gallery-filter__btn:hover,
+.gallery-filter__btn.active { border-color: var(--gold); color: var(--gold); }
+
+/* ── EPK page ── */
+.epk-page .section { padding: 5rem 0; }
+.epk-page h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); }
+
+/* ── Lightbox (Media Hub) ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.lightbox {
+  position: relative;
+  max-width: min(900px, 100%);
+  width: 100%;
+  background: var(--panel);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.lightbox img { width: 100%; max-height: 75vh; object-fit: contain; display: block; }
+.lightbox__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.lightbox__info strong { display: block; font-size: 0.95rem; color: var(--cream); }
+.lightbox__info span { font-size: 0.78rem; color: var(--muted); }
+.lightbox__close,
+.lightbox__prev,
+.lightbox__next {
+  position: absolute;
+  background: rgba(0,0,0,0.5);
+  border: none;
+  color: var(--cream);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+.lightbox__close:hover,
+.lightbox__prev:hover,
+.lightbox__next:hover { background: var(--gold); color: #000; }
+.lightbox__close { top: 0.75rem; right: 0.75rem; }
+.lightbox__prev { top: 50%; left: 0.75rem; transform: translateY(-50%); }
+.lightbox__next { top: 50%; right: 0.75rem; transform: translateY(-50%); }
+
+/* ── YouTube Grid ── */
+.youtube-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+.video-card { display: flex; flex-direction: column; gap: 0; }
+.video-card__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--panel);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.video-card__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.video-card__thumb {
+  position: absolute;
+  inset: 0;
+  background: var(--panel-light) center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-card__thumb--clickable { cursor: pointer; }
+.video-card__thumb--clickable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  transition: background 0.25s;
+}
+.video-card__thumb--clickable:hover::after { background: rgba(0,0,0,0.15); }
+.video-card__thumb--clickable .play-button {
+  position: relative;
+  z-index: 1;
+  background: var(--gold);
+  color: #000;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.video-card__thumb--clickable:hover .play-button {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.6);
+}
+.video-card__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+}
+.video-card__placeholder p { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.video-card__body { padding: 1.1rem 0.25rem 0; }
+.video-card__body h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+
+/* ── Social Feed Section ── */
+.social-feed-section { background: var(--panel); }
+.social-feed { width: 100%; }
+.social-feed behold-widget { display: block; width: 100%; }
+
+/* Social feed placeholder (shown before Behold is configured) */
+.social-feed--placeholder { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
+.social-feed__placeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+.social-feed__placeholder-item {
+  aspect-ratio: 1;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+.social-feed__setup-note {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+.social-feed__setup-note a { color: var(--gold); text-decoration: underline; }
+.social-feed__setup-note code {
+  background: var(--panel-light);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--cream);
+}
+
+@media (max-width: 640px) {
+  .social-feed__placeholder-grid { grid-template-columns: repeat(3, 1fr); }
+  .youtube-grid { grid-template-columns: 1fr; }
+}

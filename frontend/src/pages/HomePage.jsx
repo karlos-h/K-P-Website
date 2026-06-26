@@ -17,21 +17,23 @@ import {
   Zap,
 } from "lucide-react";
 import MediaGallery from "../components/MediaGallery";
+import YouTubeGrid from "../components/YouTubeGrid";
+import SocialFeed from "../components/SocialFeed";
 import {
   BOOKING_FEATURES,
-  EVENTS,
-  GALLERY_ITEMS,
   HIGHLIGHT_REEL_EMBED,
-  MUSIC_MIXES,
+  LINKTREE_URL,
   SOCIAL_LINKS,
-  STATS,
   TIMELINE,
-  TRUSTED_BY,
   VENUES,
 } from "../data/siteData";
 import { supabase } from "../lib/supabase";
 
-const NAV_LINKS = ["Home", "About", "Events", "Gallery", "Press Kit", "Contact"];
+const NAV_LINKS = ["Home", "About", "Events", "Videos", "Gallery", "Press Kit", "Contact"];
+const NAV_EXTERNAL = [
+  { label: "Media Hub", href: "/media-hub" },
+  { label: "EPK", href: "/epk" },
+];
 
 function useCountUp(target, duration = 1800, active = false) {
   const [count, setCount] = useState(0);
@@ -128,7 +130,34 @@ function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const statsRef = useRef(null);
 
+  // Supabase data
+  const [events, setEvents] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [trustedVenues, setTrustedVenues] = useState([]);
+  const [mixes, setMixes] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
   useReveal();
+
+  // Fetch all dynamic data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      const [eventsRes, statsRes, venuesRes, mixesRes] = await Promise.all([
+        supabase.from("events").select("*").order("created_at", { ascending: false }),
+        supabase.from("stats").select("*").order("sort_order"),
+        supabase.from("trusted_venues").select("*").order("sort_order"),
+        supabase.from("mixes").select("*").order("created_at"),
+      ]);
+
+      if (eventsRes.data) setEvents(eventsRes.data);
+      if (statsRes.data) setStats(statsRes.data);
+      if (venuesRes.data) setTrustedVenues(venuesRes.data);
+      if (mixesRes.data) setMixes(mixesRes.data);
+      setDataLoading(false);
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY);
@@ -151,45 +180,32 @@ function HomePage() {
   };
 
   const handleSubmit = async (event) => {
-  event.preventDefault();
-
-  setIsSubmitting(true);
-
-  try {
-    // Tester: await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const { error } = await supabase
-      .from("enquiries")
-      .insert([
-        {
+    event.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("enquiries")
+        .insert([{
           name: contactForm.name,
           company: contactForm.company,
           event_type: contactForm.event,
           email: contactForm.email,
           message: contactForm.message,
-        },
-      ]);
+        }]);
 
-    if (!error) {
-      setFormSent(true);
-
-      setContactForm({
-        name: "",
-        company: "",
-        event: "",
-        email: "",
-        message: "",
-      });
-    } else {
-      console.error("SUPABASE ERROR:", error);
-      alert(error.message);
-    }
-  } finally {
-    setIsSubmitting(false);
+      if (!error) {
+        setFormSent(true);
+        setContactForm({ name: "", company: "", event: "", email: "", message: "" });
+      } else {
+        console.error("SUPABASE ERROR:", error);
+        alert(error.message);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const filteredEvents = EVENTS.filter((event) => event.status === eventTab);
+  const filteredEvents = events.filter((event) => event.status === eventTab);
 
   return (
     <div className="site-shell">
@@ -202,6 +218,11 @@ function HomePage() {
             <button key={link} onClick={() => scrollTo(link)}>
               {link}
             </button>
+          ))}
+          {NAV_EXTERNAL.map((item) => (
+            <a key={item.label} href={item.href} className="nav__external-link">
+              {item.label}
+            </a>
           ))}
           <button className="button button--gold nav__book" onClick={() => scrollTo("Contact")}>
             Book Us
@@ -306,9 +327,12 @@ function HomePage() {
         <section className="stats" ref={statsRef}>
           <Container>
             <div className="stats__grid">
-              {STATS.map((stat) => (
-                <StatCard stat={stat} active={statsVisible} key={stat.label} />
-              ))}
+              {dataLoading
+                ? null
+                : stats.map((stat) => (
+                    <StatCard stat={stat} active={statsVisible} key={stat.label} />
+                ))
+            }
             </div>
           </Container>
         </section>
@@ -317,13 +341,13 @@ function HomePage() {
           <Container>
             <SectionHeading label="Trusted By" title="Stages That Know Our Energy" align="center" />
             <div className="trusted__grid">
-              {TRUSTED_BY.map((venue) => (
+              {trustedVenues.map((venue) => (
                 <article className="trusted-card" key={venue.name} data-reveal>
-                  <div className="trusted-card__mark">{venue.initials}</div>
-                  <h3>{venue.name}</h3>
-                  <p>{venue.type}</p>
+                    <div className="trusted-card__mark">{venue.initials}</div>
+                    <h3>{venue.name}</h3>
+                    <p>{venue.type}</p>
                 </article>
-              ))}
+                ))}
             </div>
           </Container>
         </section>
@@ -456,28 +480,49 @@ function HomePage() {
               align="center"
             />
             <div className="music__grid">
-              {MUSIC_MIXES.map((mix, index) => (
+              {mixes.map((mix, index) => (
                 <article className="music-card" key={mix.title} data-reveal>
-                  <div className="music-card__art">
+                    <div className="music-card__art">
                     <Headphones size={34} />
                     <span>Mix 0{index + 1}</span>
-                  </div>
-                  <div className="music-card__body">
+                    </div>
+                    <div className="music-card__body">
                     <p>{mix.genre}</p>
                     <h3>{mix.title}</h3>
                     <iframe
-                      title={`${mix.title} SoundCloud player`}
-                      width="100%"
-                      height="120"
-                      scrolling="no"
-                      frameBorder="no"
-                      allow="autoplay"
-                      loading="lazy"
-                      src={mix.embed}
+                        title={`${mix.title} SoundCloud player`}
+                        width="100%"
+                        height="120"
+                        scrolling="no"
+                        frameBorder="no"
+                        allow="autoplay"
+                        loading="lazy"
+                        src={mix.embed_url}
                     />
-                  </div>
+                    </div>
                 </article>
-              ))}
+                ))}
+            </div>
+          </Container>
+        </section>
+
+        <section id="videos" className="section videos">
+          <Container>
+            <SectionHeading
+              label="Watch"
+              title="See the Sets"
+              copy="Full sets, event recaps, and behind-the-scenes from Kava & Pyramids."
+            />
+            <YouTubeGrid />
+            <div style={{ textAlign: "center", marginTop: "3rem" }} data-reveal>
+              <a
+                className="button button--outline"
+                href="https://www.youtube.com/@KavaPyramids"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Youtube size={17} /> Subscribe on YouTube
+              </a>
             </div>
           </Container>
         </section>
@@ -490,6 +535,38 @@ function HomePage() {
               copy="Crowds, travel, festivals, and the moments between sets."
             />
             <MediaGallery items={GALLERY_ITEMS} />
+            <div className="media-hub-cta" data-reveal>
+              <div>
+                <p className="section-label">Photo Hub</p>
+                <h3>Download Event Photos</h3>
+                <p>Promoters and media — browse and download high-res photos from our events.</p>
+              </div>
+              <a className="button button--gold" href="/media-hub">
+                Open Photo Hub <ArrowRight size={16} />
+              </a>
+            </div>
+          </Container>
+        </section>
+
+        <section className="section section--dark social-feed-section">
+          <Container>
+            <SectionHeading
+              label="Follow the Journey"
+              title="@kava_pyramids"
+              copy="Behind the decks, on the road, and every moment between. Follow us on Instagram."
+              align="center"
+            />
+            <SocialFeed />
+            <div style={{ textAlign: "center", marginTop: "2.5rem" }} data-reveal>
+              <a
+                className="button button--outline"
+                href="https://www.instagram.com/kava_pyramids/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Instagram size={17} /> Follow on Instagram
+              </a>
+            </div>
           </Container>
         </section>
 
@@ -533,8 +610,8 @@ function HomePage() {
                   sounds, they read the room and keep it moving.
                 </p>
                 <div className="button-row">
-                  <a className="button button--gold" href="mailto:kavapyramids@gmail.com?subject=EPK%20Request">
-                    Request EPK
+                  <a className="button button--gold" href="/epk">
+                    View Full EPK
                   </a>
                   <a className="button button--outline" href="mailto:kavapyramids@gmail.com">
                     Email Us
@@ -644,11 +721,17 @@ function HomePage() {
       <footer>
         <p className="wordmark">KAVA &amp; PYRAMIDS</p>
         <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
+        <div className="footer__links">
+          <a href="/media-hub">Photo Hub</a>
+          <a href="/epk">Press Kit</a>
+          <a href={LINKTREE_URL} target="_blank" rel="noreferrer">Linktree</a>
+          {SOCIAL_LINKS.map((s) => (
+            <a key={s.name} href={s.url} target="_blank" rel="noreferrer">{s.name}</a>
+          ))}
+        </div>
         <small>© 2026 Kava &amp; Pyramids. All rights reserved.</small>
-        <a href="/login" style={{ display: 'block', marginTop: '1.5rem', color: '#2a2a2a', fontSize: '0.6rem' }}>
-            ·
-        </a>
-    </footer>
+        <a href="/login" style={{ display: 'block', marginTop: '1.5rem', color: '#2a2a2a', fontSize: '0.6rem' }}>·</a>
+      </footer>
     </div>
   );
 }
