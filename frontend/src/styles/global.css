@@ -616,3 +616,46 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   .social-feed__placeholder-grid { grid-template-columns: repeat(3, 1fr); }
   .youtube-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Modal (EPK download gate) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  backdrop-filter: blur(4px);
+}
+.modal-card {
+  position: relative;
+  width: min(480px, 100%);
+  padding: 2.5rem 2.25rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+.modal-card h3 { font-size: 1.5rem; margin: 0.5rem 0 0.25rem; }
+.modal-card > p { font-size: 0.9rem; margin: 0 0 0.5rem; }
+.modal-card form label span { color: var(--gold); }
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  display: flex;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: var(--cream); }

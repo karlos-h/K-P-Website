@@ -1,7 +1,93 @@
-import { Download, Mail, MapPin, Music2, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Download, Mail, MapPin, Music2, Sparkles, X, FileText } from "lucide-react";
 import { SOCIAL_LINKS, TIMELINE, VENUES } from "../data/siteData";
+import { supabase } from "../lib/supabase";
+
+function EpkDownloadModal({ onClose }) {
+  const [form, setForm] = useState({ name: "", email: "", venue: "" });
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email) { setError("Please fill in your name and email."); return; }
+    setLoading(true);
+    try {
+      await supabase.from("epk_downloads").insert([{
+        name: form.name,
+        email: form.email,
+        venue: form.venue || null,
+      }]);
+    } catch (_) {
+      // Non-blocking — log failure silently
+    }
+    setLoading(false);
+    setDone(true);
+    // Trigger the PDF download
+    const link = document.createElement("a");
+    link.href = "/epk-download.pdf";
+    link.download = "Kava-Pyramids-EPK.pdf";
+    link.click();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}><X size={18} /></button>
+        <span className="email-gate__icon"><FileText size={28} /></span>
+
+        {done ? (
+          <div style={{ textAlign: "center" }}>
+            <h3>Download Starting</h3>
+            <p style={{ marginBottom: "1.5rem" }}>
+              Your EPK is downloading now. Feel free to reach out directly at{" "}
+              <a href="mailto:kavapyramids@gmail.com" style={{ color: "var(--gold)" }}>kavapyramids@gmail.com</a>.
+            </p>
+            <button className="button button--gold" onClick={onClose}>Close</button>
+          </div>
+        ) : (
+          <>
+            <h3>Download the EPK</h3>
+            <p>Enter your details and the PDF will download automatically.</p>
+            <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.9rem", marginTop: "0.5rem" }}>
+              {[
+                { key: "name",  label: "Your Name",       type: "text",  placeholder: "Jane Smith",          required: true  },
+                { key: "email", label: "Email Address",    type: "email", placeholder: "jane@venue.com",      required: true  },
+                { key: "venue", label: "Company / Venue",  type: "text",  placeholder: "The Venue (optional)", required: false },
+              ].map(({ key, label, type, placeholder, required }) => (
+                <label key={key} style={{ display: "grid", gap: "0.35rem" }}>
+                  <span style={{ fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)" }}>
+                    {label}{required ? "" : " (optional)"}
+                  </span>
+                  <input
+                    type={type}
+                    placeholder={placeholder}
+                    value={form[key]}
+                    required={required}
+                    onChange={(e) => { setForm({ ...form, [key]: e.target.value }); setError(""); }}
+                  />
+                </label>
+              ))}
+              {error && <p style={{ color: "#e05c5c", fontSize: "0.82rem", margin: 0 }}>{error}</p>}
+              <button className="button button--gold" type="submit" disabled={loading} style={{ marginTop: "0.25rem" }}>
+                {loading ? "Preparing…" : <><Download size={15} /> Download EPK PDF</>}
+              </button>
+            </form>
+            <p style={{ fontSize: "0.72rem", color: "var(--muted)", textAlign: "center", marginTop: "0.75rem", marginBottom: 0 }}>
+              <Mail size={12} style={{ verticalAlign: "middle", marginRight: "0.3rem" }} />
+              Used for booking follow-up only — no spam.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function EpkPage() {
+  const [showModal, setShowModal] = useState(false);
+
   return (
     <div className="site-shell epk-page">
       <nav className="nav nav--scrolled">
@@ -27,11 +113,11 @@ export default function EpkPage() {
                 Hip-Hop · R&amp;B · Top 40 · Global Club
               </p>
               <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-                <a className="button button--gold" href="mailto:kavapyramids@gmail.com">
-                  <Mail size={15} /> Request Full EPK
-                </a>
-                <a className="button button--outline" href="/epk-download.pdf" download>
-                  <Download size={15} /> Download PDF
+                <button className="button button--gold" onClick={() => setShowModal(true)}>
+                  <Download size={15} /> Download EPK PDF
+                </button>
+                <a className="button button--outline" href="mailto:kavapyramids@gmail.com">
+                  <Mail size={15} /> Email Us
                 </a>
               </div>
             </div>
@@ -179,6 +265,8 @@ export default function EpkPage() {
         <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
         <small>© 2026 Kava &amp; Pyramids. All rights reserved.</small>
       </footer>
+
+      {showModal && <EpkDownloadModal onClose={() => setShowModal(false)} />}
     </div>
   );
 }

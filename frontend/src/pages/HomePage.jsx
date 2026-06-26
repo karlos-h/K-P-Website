@@ -455,13 +455,13 @@ function HomePage() {
             </div>
             <div className="events__list">
               {filteredEvents.map((event) => (
-                <article className="event-card" key={event.name} data-reveal>
+                <article className="event-card" key={event.title} data-reveal>
                   <div className="event-card__date">
                     <CalendarDays size={18} />
                     <span>{event.date}</span>
                   </div>
                   <div>
-                    <h3>{event.name}</h3>
+                    <h3>{event.title}</h3>
                     <p>{event.location}</p>
                   </div>
                   <span className="pill">{event.type}</span>
