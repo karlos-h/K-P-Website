@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { hoverLift, revealProps } from "../lib/motion";
 
 const CATEGORIES = ["All", "Crowd Energy", "DJ Life", "Travel", "Festivals"];
 
 export default function MediaGallery({ items }) {
   const [category, setCategory] = useState("All");
   const [activeIndex, setActiveIndex] = useState(null);
+  const reduceMotion = useReducedMotion();
   const filtered = useMemo(
     () => category === "All" ? items : items.filter((item) => item.category === category),
     [category, items],
@@ -30,13 +33,19 @@ export default function MediaGallery({ items }) {
       </div>
       <div className="gallery__grid">
         {filtered.map((item, index) => (
-          <button className="gallery-card" key={item.title} onClick={() => setActiveIndex(index)} data-reveal>
+          <motion.button
+            className="gallery-card"
+            key={item.title}
+            onClick={() => setActiveIndex(index)}
+            {...revealProps(index * 0.05, reduceMotion)}
+            {...hoverLift(reduceMotion)}
+          >
             <img src={item.src} alt={`${item.title} - ${item.category}`} loading="lazy" />
             <span>
               <small>{item.category}</small>
               <strong>{item.title}</strong>
             </span>
-          </button>
+          </motion.button>
         ))}
       </div>
       {activeItem && (

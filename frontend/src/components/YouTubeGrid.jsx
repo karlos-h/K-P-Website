@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Play, Youtube } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { hoverLift, revealProps } from "../lib/motion";
 
 // Fallback placeholder videos — replace youtube_id values with real ones from YouTube Studio.
 // To get a video ID: open the video on YouTube, copy the part after "?v=" in the URL.
@@ -11,13 +13,16 @@ const PLACEHOLDER_VIDEOS = [
   { id: 3, title: "Rolling Meadows Festival", genre: "Festival", youtube_id: null },
 ];
 
-function VideoCard({ video }) {
+function VideoCard({ video, delay, reduceMotion }) {
   const [playing, setPlaying] = useState(false);
   const hasVideo = Boolean(video.youtube_id);
 
   return (
-    <article className="video-card" data-reveal>
-      <div className="video-card__frame">
+    <motion.article
+      className="video-card"
+      {...revealProps(delay, reduceMotion)}
+    >
+      <motion.div className="video-card__frame" {...(hasVideo ? hoverLift(reduceMotion) : {})}>
         {hasVideo && playing ? (
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0`}
@@ -46,7 +51,7 @@ function VideoCard({ video }) {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
       <div className="video-card__body">
         <p className="section-label" style={{ marginBottom: "0.35rem" }}>{video.genre}</p>
         <h3>{video.title}</h3>
@@ -61,12 +66,13 @@ function VideoCard({ video }) {
           </a>
         )}
       </div>
-    </article>
+    </motion.article>
   );
 }
 
 export default function YouTubeGrid() {
   const [videos, setVideos] = useState(PLACEHOLDER_VIDEOS);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -81,8 +87,8 @@ export default function YouTubeGrid() {
 
   return (
     <div className="youtube-grid">
-      {videos.map((video) => (
-        <VideoCard key={video.id} video={video} />
+      {videos.map((video, index) => (
+        <VideoCard key={video.id} video={video} delay={index * 0.08} reduceMotion={reduceMotion} />
       ))}
     </div>
   );

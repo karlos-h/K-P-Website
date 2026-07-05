@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   CalendarDays,
@@ -21,13 +22,17 @@ import YouTubeGrid from "../components/YouTubeGrid";
 import SocialFeed from "../components/SocialFeed";
 import {
   BOOKING_FEATURES,
+  GALLERY_ITEMS,
+  GENRES,
   HIGHLIGHT_REEL_EMBED,
   LINKTREE_URL,
+  RESIDENCIES,
   SOCIAL_LINKS,
   TIMELINE,
   VENUES,
 } from "../data/siteData";
 import { supabase } from "../lib/supabase";
+import { revealProps, sceneProps } from "../lib/motion";
 
 const NAV_LINKS = ["Home", "About", "Events", "Videos", "Gallery", "Press Kit", "Contact"];
 const NAV_EXTERNAL = [
@@ -54,47 +59,33 @@ function useCountUp(target, duration = 1800, active = false) {
   return count;
 }
 
-function useReveal() {
-  useEffect(() => {
-    const elements = document.querySelectorAll("[data-reveal]");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12 },
-    );
-    elements.forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, []);
-}
-
 function Container({ children, narrow = false }) {
   return <div className={`container${narrow ? " container--narrow" : ""}`}>{children}</div>;
 }
 
-function SectionLabel({ children }) {
-  return <p className="section-label">{children}</p>;
+function SectionLabel({ children, style }) {
+  return <p className="section-label" style={style}>{children}</p>;
 }
 
 function SectionHeading({ label, title, copy, align = "left" }) {
+  const reduceMotion = useReducedMotion();
   return (
-    <div className={`section-heading section-heading--${align}`} data-reveal>
+    <motion.div
+      className={`section-heading section-heading--${align}`}
+      {...revealProps(0, reduceMotion)}
+    >
       <SectionLabel>{label}</SectionLabel>
       <h2>{title}</h2>
       {copy && <p>{copy}</p>}
-    </div>
+    </motion.div>
   );
 }
 
 function StatCard({ stat, active }) {
   const count = useCountUp(stat.value, 1800, active);
   return (
-    <div className="stat-card">
+    <div className={`stat-card${active ? " stat-card--active" : ""}`}>
+      <span className="stat-card__glow" aria-hidden="true" />
       <strong>{count.toLocaleString()}{stat.suffix}</strong>
       <span>{stat.label}</span>
     </div>
@@ -110,6 +101,22 @@ function SocialIcon({ name }) {
   };
   const Icon = icons[name] || Music2;
   return <Icon size={17} aria-hidden="true" />;
+}
+
+// Picks the earliest upcoming event to feature in the "Next Up" block.
+// Event dates are stored as free-text (e.g. "27 June 2026"), so a failed
+// Date parse is pushed to the end rather than crashing the sort.
+function pickNextEvent(events) {
+  const upcoming = events.filter((event) => event.status === "upcoming");
+  return upcoming
+    .slice()
+    .sort((a, b) => {
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      const safeA = Number.isNaN(timeA) ? Infinity : timeA;
+      const safeB = Number.isNaN(timeB) ? Infinity : timeB;
+      return safeA - safeB;
+    })[0];
 }
 
 function HomePage() {
@@ -129,6 +136,7 @@ function HomePage() {
   const [formSent, setFormSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const statsRef = useRef(null);
+  const prefersReducedMotion = useReducedMotion();
 
   // Supabase data
   const [events, setEvents] = useState([]);
@@ -136,8 +144,6 @@ function HomePage() {
   const [trustedVenues, setTrustedVenues] = useState([]);
   const [mixes, setMixes] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
-
-  useReveal();
 
   // Fetch all dynamic data on mount
   useEffect(() => {
@@ -206,6 +212,7 @@ function HomePage() {
   };
 
   const filteredEvents = events.filter((event) => event.status === eventTab);
+  const nextEvent = pickNextEvent(events);
 
   return (
     <div className="site-shell">
@@ -254,6 +261,7 @@ function HomePage() {
           </video>
         )}
         <div className="hero__overlay" />
+        <div className="hero__sweep" aria-hidden="true" />
         <div className="hero__grain" />
         <div
           className="hero__content"
@@ -266,7 +274,7 @@ function HomePage() {
           <h1>
             Kava <span>&amp; Pyramids</span>
           </h1>
-          <p className="hero__tagline">From Christchurch to the World</p>
+          <p className="hero__tagline">CHCH to the World</p>
           <div className="hero__actions">
             <button className="button button--outline" onClick={() => scrollTo("Events")}>
               View Events
@@ -283,10 +291,10 @@ function HomePage() {
       </header>
 
       <main>
-        <section className="movement section">
+        <motion.section className="movement section" {...sceneProps(0, prefersReducedMotion)}>
           <Container>
             <div className="movement__grid">
-              <div className="video-frame" data-reveal>
+              <motion.div className="video-frame" {...revealProps(0, prefersReducedMotion)}>
                 {HIGHLIGHT_REEL_EMBED.includes("VIDEO_ID") ? (
                   <div className="video-frame__placeholder">
                     <span className="play-button"><Play fill="currentColor" /></span>
@@ -302,8 +310,8 @@ function HomePage() {
                     loading="lazy"
                   />
                 )}
-              </div>
-              <div data-reveal>
+              </motion.div>
+              <motion.div {...revealProps(0.12, prefersReducedMotion)}>
                 <SectionLabel>Watch the Movement</SectionLabel>
                 <h2>See Why Crowds Keep Coming Back</h2>
                 <div className="movement__beats">
@@ -319,10 +327,10 @@ function HomePage() {
                 <a className="text-link" href="https://www.youtube.com/@KavaPyramids" target="_blank" rel="noreferrer">
                   Watch Full Sets <ArrowRight size={16} />
                 </a>
-              </div>
+              </motion.div>
             </div>
           </Container>
-        </section>
+        </motion.section>
 
         <section className="stats" ref={statsRef}>
           <Container>
@@ -341,37 +349,46 @@ function HomePage() {
           <Container>
             <SectionHeading label="Trusted By" title="Stages That Know Our Energy" align="center" />
             <div className="trusted__grid">
-              {trustedVenues.map((venue) => (
-                <article className="trusted-card" key={venue.name} data-reveal>
+              {trustedVenues.map((venue, index) => (
+                <motion.article
+                  className="trusted-card"
+                  key={venue.name}
+                  {...revealProps(index * 0.06, prefersReducedMotion)}
+                >
                     <div className="trusted-card__mark">{venue.initials}</div>
                     <h3>{venue.name}</h3>
                     <p>{venue.type}</p>
-                </article>
+                </motion.article>
                 ))}
             </div>
           </Container>
         </section>
 
-        <section className="featured-event">
-          <Container>
-            <div className="featured-event__content" data-reveal>
-              <div>
-                <SectionLabel>Next Up</SectionLabel>
-                <h2>Wonderland Brisbane</h2>
-                <p>27 June 2026 · Brisbane, Australia</p>
-              </div>
-              <div className="date-block">
-                <span><strong>27</strong>June</span>
-                <span><strong>2026</strong>Australia</span>
-              </div>
-            </div>
-          </Container>
-        </section>
+        {nextEvent && (
+          <section className="featured-event">
+            <Container>
+              <motion.div className="featured-event__content" {...revealProps(0, prefersReducedMotion)}>
+                <div>
+                  <SectionLabel>Next Up</SectionLabel>
+                  <h2>{nextEvent.title}</h2>
+                  <p>{nextEvent.date} · {nextEvent.location}</p>
+                </div>
+                <div className="date-block">
+                  <span><strong>{nextEvent.date}</strong>{nextEvent.type}</span>
+                  <span>
+                    <strong>{nextEvent.location.split(",").pop().trim()}</strong>
+                    {nextEvent.location.split(",")[0].trim()}
+                  </span>
+                </div>
+              </motion.div>
+            </Container>
+          </section>
+        )}
 
         <section id="about" className="section about">
           <Container>
             <div className="about__grid">
-              <div data-reveal>
+              <motion.div {...revealProps(0, prefersReducedMotion)}>
                 <SectionLabel>Our Story</SectionLabel>
                 <h2>Two friends.<br /><span>One movement.</span></h2>
                 <p>
@@ -384,54 +401,64 @@ function HomePage() {
                   creating a sound and presence that never fits neatly into one box.
                 </p>
                 <p>
-                  By 2025 they were playing peak-time slots at Original Sin, performing
-                  internationally in Fiji, and taking on festival stages. In 2026, Australia.
+                  That start in Christchurch high school hallways now plays out most weekends —
+                  Kong Bar on Saturdays, Original Sin on Fridays, peak-time slots either way. In
+                  2025 that reach grew to Fiji. In 2026, Australia.
                 </p>
+                <div className="residencies" aria-label="Current weekly residencies">
+                  {RESIDENCIES.map((residency) => (
+                    <span key={residency.venue}>
+                      <strong>{residency.venue}</strong>
+                      {residency.night}
+                    </span>
+                  ))}
+                </div>
                 <button className="button button--outline" onClick={() => scrollTo("Contact")}>
                   Book a Show
                 </button>
-              </div>
-              <div className="timeline" data-reveal>
+              </motion.div>
+              <motion.div className="timeline" {...revealProps(0.12, prefersReducedMotion)}>
                 {TIMELINE.map((item, index) => (
-                  <button
+                  <motion.button
                     className={`timeline__item ${activeTimeline === index ? "timeline__item--active" : ""}`}
                     key={item.year}
                     onClick={() => setActiveTimeline(index)}
+                    {...revealProps(index * 0.06, prefersReducedMotion)}
                   >
                     <span>{item.year}</span>
                     <div>
                       <strong>{item.title}</strong>
                       {activeTimeline === index && <p>{item.desc}</p>}
                     </div>
-                  </button>
+                  </motion.button>
                 ))}
-              </div>
+              </motion.div>
             </div>
           </Container>
         </section>
 
-        <section className="heritage section section--dark">
+        <motion.section className="heritage section section--dark" {...sceneProps(0, prefersReducedMotion)}>
           <Container>
             <div className="heritage__grid">
-              <article data-reveal>
+              <motion.article {...revealProps(0, prefersReducedMotion)}>
                 <SectionLabel>Fijian Heritage</SectionLabel>
                 <h3>Kava</h3>
                 <p>
                   Ceremony, community, and the spirit of the Pacific. Kava represents warmth,
                   connection, and bringing people together, exactly what happens on every dancefloor.
                 </p>
-              </article>
-              <article data-reveal>
+              </motion.article>
+              <motion.article {...revealProps(0.12, prefersReducedMotion)}>
                 <SectionLabel>Egyptian Heritage</SectionLabel>
                 <h3>Pyramids</h3>
                 <p>
                   Monuments to ambition and craft. The name carries the belief that when something
                   is built with intention, it endures. That is the energy behind every set.
                 </p>
-              </article>
+              </motion.article>
             </div>
           </Container>
-        </section>
+        </motion.section>
 
         <section id="events" className="section events">
           <Container>
@@ -454,8 +481,12 @@ function HomePage() {
               ))}
             </div>
             <div className="events__list">
-              {filteredEvents.map((event) => (
-                <article className="event-card" key={event.title} data-reveal>
+              {filteredEvents.map((event, index) => (
+                <motion.article
+                  className="event-card"
+                  key={event.title}
+                  {...revealProps(index * 0.06, prefersReducedMotion)}
+                >
                   <div className="event-card__date">
                     <CalendarDays size={18} />
                     <span>{event.date}</span>
@@ -465,7 +496,7 @@ function HomePage() {
                     <p>{event.location}</p>
                   </div>
                   <span className="pill">{event.type}</span>
-                </article>
+                </motion.article>
               ))}
             </div>
           </Container>
@@ -481,7 +512,11 @@ function HomePage() {
             />
             <div className="music__grid">
               {mixes.map((mix, index) => (
-                <article className="music-card" key={mix.title} data-reveal>
+                <motion.article
+                  className="music-card"
+                  key={mix.title}
+                  {...revealProps(index * 0.08, prefersReducedMotion)}
+                >
                     <div className="music-card__art">
                     <Headphones size={34} />
                     <span>Mix 0{index + 1}</span>
@@ -500,7 +535,7 @@ function HomePage() {
                         src={mix.embed_url}
                     />
                     </div>
-                </article>
+                </motion.article>
                 ))}
             </div>
           </Container>
@@ -514,7 +549,10 @@ function HomePage() {
               copy="Full sets, event recaps, and behind-the-scenes from Kava & Pyramids."
             />
             <YouTubeGrid />
-            <div style={{ textAlign: "center", marginTop: "3rem" }} data-reveal>
+            <motion.div
+              style={{ textAlign: "center", marginTop: "3rem" }}
+              {...revealProps(0, prefersReducedMotion)}
+            >
               <a
                 className="button button--outline"
                 href="https://www.youtube.com/@KavaPyramids"
@@ -523,7 +561,7 @@ function HomePage() {
               >
                 <Youtube size={17} /> Subscribe on YouTube
               </a>
-            </div>
+            </motion.div>
           </Container>
         </section>
 
@@ -535,7 +573,7 @@ function HomePage() {
               copy="Crowds, travel, festivals, and the moments between sets."
             />
             <MediaGallery items={GALLERY_ITEMS} />
-            <div className="media-hub-cta" data-reveal>
+            <motion.div className="media-hub-cta" {...revealProps(0, prefersReducedMotion)}>
               <div>
                 <p className="section-label">Photo Hub</p>
                 <h3>Download Event Photos</h3>
@@ -544,7 +582,7 @@ function HomePage() {
               <a className="button button--gold" href="/media-hub">
                 Open Photo Hub <ArrowRight size={16} />
               </a>
-            </div>
+            </motion.div>
           </Container>
         </section>
 
@@ -557,7 +595,10 @@ function HomePage() {
               align="center"
             />
             <SocialFeed />
-            <div style={{ textAlign: "center", marginTop: "2.5rem" }} data-reveal>
+            <motion.div
+              style={{ textAlign: "center", marginTop: "2.5rem" }}
+              {...revealProps(0, prefersReducedMotion)}
+            >
               <a
                 className="button button--outline"
                 href="https://www.instagram.com/kava_pyramids/"
@@ -566,7 +607,7 @@ function HomePage() {
               >
                 <Instagram size={17} /> Follow on Instagram
               </a>
-            </div>
+            </motion.div>
           </Container>
         </section>
 
@@ -583,11 +624,15 @@ function HomePage() {
                 const icons = [Zap, Users, Globe2, Radio, Music2, Ticket];
                 const Icon = icons[index];
                 return (
-                  <article className="feature-card" key={feature.title} data-reveal>
+                  <motion.article
+                    className="feature-card"
+                    key={feature.title}
+                    {...revealProps(index * 0.06, prefersReducedMotion)}
+                  >
                     <Icon size={25} />
                     <h3>{feature.title}</h3>
                     <p>{feature.description}</p>
-                  </article>
+                  </motion.article>
                 );
               })}
             </div>
@@ -597,17 +642,19 @@ function HomePage() {
         <section id="press-kit" className="section section--dark press">
           <Container>
             <div className="press__grid">
-              <div data-reveal>
+              <motion.div {...revealProps(0, prefersReducedMotion)}>
                 <SectionLabel>Press Kit</SectionLabel>
                 <h2>For Promoters &amp; Media</h2>
                 <p>
-                  Kava &amp; Pyramids formed in 2023 and stepped onto the Christchurch scene in
-                  2024. By 2025 they were holding peak-time slots at Original Sin and performing
-                  internationally in Fiji.
+                  Kava &amp; Pyramids formed in 2023, building on a friendship that started in
+                  Christchurch high school in 2018. They stepped onto the Christchurch scene in
+                  2024, and by 2025 were holding weekly residencies at Original Sin and Kong Bar
+                  alongside international shows in Fiji.
                 </p>
                 <p>
-                  Known for high-energy sets across Hip-Hop, R&amp;B, Top 40, and global club
-                  sounds, they read the room and keep it moving.
+                  Known for high-energy, open-format sets across Hip-Hop, R&amp;B, Pop, and
+                  Afrobeats — with an ear on current club sounds like Baile Funk, Miami Bass, and
+                  Jersey Club — they read the room and keep it moving.
                 </p>
                 <div className="button-row">
                   <a className="button button--gold" href="/epk">
@@ -617,8 +664,8 @@ function HomePage() {
                     Email Us
                   </a>
                 </div>
-              </div>
-              <div className="press__details" data-reveal>
+              </motion.div>
+              <motion.div className="press__details" {...revealProps(0.12, prefersReducedMotion)}>
                 <SectionLabel>Known For</SectionLabel>
                 {[
                   "High-energy crowd engagement",
@@ -629,26 +676,26 @@ function HomePage() {
                 ].map((item) => <p key={item}><Sparkles size={14} />{item}</p>)}
                 <SectionLabel>Genres</SectionLabel>
                 <div className="genre-list">
-                  {["Hip-Hop", "R&B", "Top 40", "Global Club"].map((genre) => <span key={genre}>{genre}</span>)}
+                  {GENRES.map((genre) => <span key={genre}>{genre}</span>)}
                 </div>
-              </div>
+              </motion.div>
             </div>
           </Container>
         </section>
 
-        <section id="gig-history" className="section gig-history">
+        <motion.section id="gig-history" className="section gig-history" {...sceneProps(0, prefersReducedMotion)}>
           <Container>
             <SectionHeading label="Gig History" title="Every Stage, Every City" />
             <div className="gig-history__grid">
-              {VENUES.map((group) => (
-                <article key={group.region} data-reveal>
+              {VENUES.map((group, index) => (
+                <motion.article key={group.region} {...revealProps(index * 0.1, prefersReducedMotion)}>
                   <SectionLabel>{group.region}</SectionLabel>
                   {group.venues.map((venue) => <p key={venue}>{venue}</p>)}
-                </article>
+                </motion.article>
               ))}
             </div>
           </Container>
-        </section>
+        </motion.section>
 
         <section id="contact" className="section section--dark contact">
           <Container narrow>
