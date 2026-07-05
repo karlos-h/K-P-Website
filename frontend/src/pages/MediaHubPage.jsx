@@ -141,7 +141,7 @@ export default function MediaHubPage() {
         <main style={{ paddingTop: "5rem" }}>
           <section className="section">
             <div className="container">
-              <div className="section-heading section-heading--left" data-reveal>
+              <div className="section-heading section-heading--left">
                 <p className="section-label">Media Hub</p>
                 <h2>Event Photo Gallery</h2>
                 <p>Browse and download high-res photos from our events. Click any photo to open fullscreen, then download.</p>
@@ -207,3 +207,4 @@ export default function MediaHubPage() {
     </div>
   );
 }
+            
