@@ -8,7 +8,7 @@ import { Instagram } from "lucide-react";
 // 4. Paste the Feed ID into BEHOLD_FEED_ID below
 // 5. That's it — the feed will auto-refresh whenever you post on Instagram
 
-const BEHOLD_FEED_ID = null; // <-- paste your Behold feed ID here, e.g. "abc123XYZ"
+const BEHOLD_FEED_ID = "tctbMGAsCjR25mkXr9OR";
 
 export default function SocialFeed() {
   const widgetRef = useRef(null);

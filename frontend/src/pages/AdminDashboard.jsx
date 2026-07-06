@@ -2,13 +2,18 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import AdminPhotoUpload from '../components/AdminPhotoUpload'
+import AdminEventsManager from '../components/AdminEventsManager'
+import AdminGalleryManager from '../components/AdminGalleryManager'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [enquiries, setEnquiries] = useState([])
+  const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [activeTab, setActiveTab] = useState('enquiries')
 
   useEffect(() => {
     const init = async () => {
@@ -20,6 +25,8 @@ export default function AdminDashboard() {
         .select('*')
         .order('created_at', { ascending: false })
       if (!error) setEnquiries(data)
+      const { data: evData } = await supabase.from('events').select('id, title, date, sort_date, location, type, status').order('created_at', { ascending: false })
+      if (evData) setEvents(evData)
       setLoading(false)
     }
     init()
@@ -67,6 +74,32 @@ export default function AdminDashboard() {
       </div>
 
       <div style={s.content}>
+        {/* ── Tab selector ── */}
+        <div style={s.tabRow}>
+          {[['enquiries', 'Enquiries'], ['events', 'Events'], ['gallery', 'Gallery'], ['photos', 'Photo Upload']].map(([id, label]) => (
+            <button
+              key={id}
+              style={{ ...s.tabBtn, ...(activeTab === id ? s.tabBtnActive : {}) }}
+              onClick={() => setActiveTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'photos' && (
+          <AdminPhotoUpload events={events} />
+        )}
+
+        {activeTab === 'events' && (
+          <AdminEventsManager events={events} setEvents={setEvents} />
+        )}
+
+        {activeTab === 'gallery' && (
+          <AdminGalleryManager events={events} />
+        )}
+
+        {activeTab === 'enquiries' && <>
         <div style={s.statsRow}>
           {[
             { label: 'Total', value: counts.all, color: '#C9A84C' },
@@ -151,6 +184,7 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+        </>}
       </div>
     </div>
   )
@@ -167,6 +201,9 @@ const s = {
   siteLink: { color: '#666', fontSize: '0.72rem', textDecoration: 'none' },
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#888', padding: '0.4rem 1rem', fontSize: '0.7rem', cursor: 'pointer', fontFamily: 'inherit' },
   content: { padding: '2rem' },
+  tabRow: { display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid #1a1a1a', paddingBottom: '1rem' },
+  tabBtn: { background: 'transparent', border: '1px solid #222', color: '#555', padding: '0.5rem 1.25rem', fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' },
+  tabBtnActive: { borderColor: '#C9A84C', color: '#C9A84C' },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' },
   statCard: { background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '1.5rem', textAlign: 'center' },
   statValue: { fontSize: '2.5rem', fontWeight: 700, fontFamily: "'Playfair Display', serif", lineHeight: 1 },

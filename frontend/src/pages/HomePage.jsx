@@ -18,6 +18,8 @@ import {
   Zap,
 } from "lucide-react";
 import MediaGallery from "../components/MediaGallery";
+import EventCarousel from "../components/EventCarousel";
+import { useEventGalleries } from "../hooks/useEventGalleries";
 import YouTubeGrid from "../components/YouTubeGrid";
 import SocialFeed from "../components/SocialFeed";
 import {
@@ -104,15 +106,19 @@ function SocialIcon({ name }) {
 }
 
 // Picks the earliest upcoming event to feature in the "Next Up" block.
-// Event dates are stored as free-text (e.g. "27 June 2026"), so a failed
-// Date parse is pushed to the end rather than crashing the sort.
+// Prefers sort_date (a real DATE column) when present; falls back to
+// parsing the free-text `date` field. Unparseable dates sort last.
 function pickNextEvent(events) {
   const upcoming = events.filter((event) => event.status === "upcoming");
   return upcoming
     .slice()
     .sort((a, b) => {
-      const timeA = new Date(a.date).getTime();
-      const timeB = new Date(b.date).getTime();
+      const timeA = a.sort_date
+        ? new Date(a.sort_date).getTime()
+        : new Date(a.date).getTime();
+      const timeB = b.sort_date
+        ? new Date(b.sort_date).getTime()
+        : new Date(b.date).getTime();
       const safeA = Number.isNaN(timeA) ? Infinity : timeA;
       const safeB = Number.isNaN(timeB) ? Infinity : timeB;
       return safeA - safeB;
@@ -137,6 +143,7 @@ function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const statsRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
+  const { galleries } = useEventGalleries();
 
   // Supabase data
   const [events, setEvents] = useState([]);
@@ -572,7 +579,10 @@ function HomePage() {
               title="On the Road"
               copy="Crowds, travel, festivals, and the moments between sets."
             />
-            <MediaGallery items={GALLERY_ITEMS} />
+            {galleries.length > 0
+              ? <EventCarousel group={galleries[0]} delay={0.1} />
+              : <MediaGallery items={GALLERY_ITEMS} />
+            }
             <motion.div className="media-hub-cta" {...revealProps(0, prefersReducedMotion)}>
               <div>
                 <p className="section-label">Photo Hub</p>

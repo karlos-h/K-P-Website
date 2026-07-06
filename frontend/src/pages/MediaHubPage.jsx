@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, Filter, Image, X, ChevronLeft, ChevronRight, Mail } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import EventCarousel from "../components/EventCarousel";
+import { useEventGalleries } from "../hooks/useEventGalleries";
 
 const STORAGE_KEY = "kp_media_hub_email";
 
@@ -110,20 +112,15 @@ function Lightbox({ assets, index, onClose, onPrev, onNext }) {
 
 export default function MediaHubPage() {
   const [unlockedEmail, setUnlockedEmail] = useState(() => localStorage.getItem(STORAGE_KEY));
-  const [assets, setAssets] = useState(MOCK_ASSETS);
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const { galleries, loading } = useEventGalleries();
 
+  // Flat fallback when Supabase has no grouped data yet
+  const [flatAssets, setFlatAssets] = useState(MOCK_ASSETS);
   useEffect(() => {
-    const fetchAssets = async () => {
-      const { data } = await supabase.from("media_assets").select("*").order("sort_order");
-      if (data && data.length > 0) setAssets(data);
-    };
-    fetchAssets();
+    supabase.from("media_assets").select("*").order("sort_order").then(({ data }) => {
+      if (data && data.length > 0) setFlatAssets(data);
+    });
   }, []);
-
-  const categories = ["All", ...new Set(assets.map((a) => a.category))];
-  const filtered = activeCategory === "All" ? assets : assets.filter((a) => a.category === activeCategory);
 
   return (
     <div className="site-shell">
@@ -144,59 +141,25 @@ export default function MediaHubPage() {
               <div className="section-heading section-heading--left">
                 <p className="section-label">Media Hub</p>
                 <h2>Event Photo Gallery</h2>
-                <p>Browse and download high-res photos from our events. Click any photo to open fullscreen, then download.</p>
+                <p>Browse and download high-res photos from our events. Click any photo to view fullscreen.</p>
               </div>
 
-              <div className="gallery-filter">
-                <Filter size={14} />
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    className={`gallery-filter__btn${activeCategory === cat ? " active" : ""}`}
-                    onClick={() => setActiveCategory(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              <div className="media-hub__grid">
-                {filtered.map((asset, i) => (
-                  <div
-                    key={asset.id}
-                    className="media-hub__item"
-                    onClick={() => setLightboxIndex(i)}
-                  >
-                    <img src={asset.thumb_url} alt={asset.event_name} loading="lazy" />
-                    <div className="media-hub__overlay">
-                      <strong>{asset.event_name}</strong>
-                      <span>{asset.category}</span>
-                      <button className="button button--gold" onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}>
-                        <Download size={14} /> Download
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {filtered.length === 0 && (
+              {loading ? (
+                <p style={{ color: "var(--muted)", padding: "4rem 0" }}>Loading galleries…</p>
+              ) : galleries.length > 0 ? (
+                <div style={{ display: "grid", gap: "3rem" }}>
+                  {galleries.map((group, i) => (
+                    <EventCarousel key={group.slug} group={group} delay={i * 0.08} />
+                  ))}
+                </div>
+              ) : (
                 <p style={{ color: "var(--muted)", textAlign: "center", padding: "4rem 0" }}>
-                  No photos in this category yet — check back after our next event.
+                  No event galleries yet — check back after our next event.
                 </p>
               )}
             </div>
           </section>
         </main>
-      )}
-
-      {lightboxIndex !== null && (
-        <Lightbox
-          assets={filtered}
-          index={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onPrev={() => setLightboxIndex((i) => (i - 1 + filtered.length) % filtered.length)}
-          onNext={() => setLightboxIndex((i) => (i + 1) % filtered.length)}
-        />
       )}
 
       <footer>
@@ -207,4 +170,3 @@ export default function MediaHubPage() {
     </div>
   );
 }
-            
