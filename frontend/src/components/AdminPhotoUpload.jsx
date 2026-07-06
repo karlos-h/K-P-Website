@@ -132,7 +132,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug }) {
     if (onDone) onDone();
   };
 
-  const canUpload = resolvedName && files.length > 0 && !uploading;
+  const canUpload = (resolvedName || defaultSlug) && files.length > 0 && !uploading;
 
   return (
     <div style={rs.panel}>
