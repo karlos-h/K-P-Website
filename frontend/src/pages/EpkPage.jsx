@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { revealProps } from "../lib/motion";
 
 function EpkDownloadModal({ onClose }) {
-  const [form, setForm] = useState({ name: "", email: "", venue: "" });
+  const [form, setForm] = useState({ name: "", email: "", venue: "", website: "" });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -15,15 +15,20 @@ function EpkDownloadModal({ onClose }) {
     e.preventDefault();
     if (!form.name || !form.email) { setError("Please fill in your name and email."); return; }
     setLoading(true);
-    try {
-      await supabase.from("epk_downloads").insert([{
-        name: form.name,
-        email: form.email,
-        venue: form.venue || null,
-      }]);
-    } catch (_) {
-      // Non-blocking — log failure silently
+
+    // Honeypot — skip the DB insert but still deliver the PDF so bots learn nothing.
+    if (!form.website) {
+      try {
+        await supabase.from("epk_downloads").insert([{
+          name: form.name,
+          email: form.email,
+          venue: form.venue || null,
+        }]);
+      } catch (_) {
+        // Non-blocking — log failure silently
+      }
     }
+
     setLoading(false);
     setDone(true);
     // Trigger the PDF download
@@ -53,6 +58,16 @@ function EpkDownloadModal({ onClose }) {
             <h3>Download the EPK</h3>
             <p>Enter your details and the PDF will download automatically.</p>
             <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.9rem", marginTop: "0.5rem" }}>
+              <input
+                type="text"
+                name="website"
+                value={form.website}
+                onChange={(e) => setForm({ ...form, website: e.target.value })}
+                tabIndex="-1"
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", opacity: 0 }}
+              />
               {[
                 { key: "name",  label: "Your Name",       type: "text",  placeholder: "Jane Smith",          required: true  },
                 { key: "email", label: "Email Address",    type: "email", placeholder: "jane@venue.com",      required: true  },

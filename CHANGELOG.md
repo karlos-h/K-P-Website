@@ -5,6 +5,34 @@ Format: newest version first.
 
 ---
 
+## v5.16.0 — Security hardening pass: real admin allowlist, RLS fixes, honeypots
+*Migrations 018–022 applied live via Supabase MCP*
+
+### Fixed — critical
+- **Every "admin" RLS policy actually granted access to any signed-in Supabase Auth user, not just the site owner.** All "Admin manages X" policies (events, stats, trusted_venues, mixes, videos, media_assets, media_downloads, enquiries, mailing_list) used `auth.role() = 'authenticated'`, which is true for *any* logged-in account — if public sign-up were ever enabled, any visitor could self-register and get full read/write/delete on every table, including `enquiries` and `mailing_list` (real customer PII). Fixed with a dedicated `admins` allowlist table (migration 018) gated behind a `SECURITY DEFINER` `is_admin()` helper, with every policy switched over to check it instead
+- **Live database had drifted from the migrations in this repo** (migration 019) — several tables had a second, undocumented "admin" policy created directly in the Supabase Dashboard that granted full access with a bare `USING (true)` (not even an auth check), sitting *alongside* the properly-scoped policy. Since Postgres RLS policies are OR'd together, migration 018 alone would not have closed this — these duplicates would have kept the door wide open. All removed; also formally tracked `epk_downloads` in a migration for the first time (it existed live but had no migration file)
+- **`is_admin()` was directly callable over the public API** (`/rest/v1/rpc/is_admin`) since PostgREST auto-exposes every function in the `public` schema. Moved into a non-exposed `private` schema (migration 020) — Postgres can still call it from RLS policies, but it's no longer reachable as an endpoint
+- **`humanitix-sync` Edge Function accepted requests from any origin** (`Access-Control-Allow-Origin: *`) and only checked that the caller was *any* authenticated user, not an admin — since it uses the service-role client (bypassing RLS entirely) to touch a third-party API key and real PII, this was a real gap. CORS is now locked to a known origin allowlist (configurable via `SITE_URL`/`ALLOWED_ORIGINS` secrets), and the function now explicitly checks the caller against the `admins` table before running
+- **Path traversal in the photo upload storage path** — an unsanitized `file.name` (e.g. containing `../`) could have written outside an event's folder or overwritten unrelated objects in the `event-photos` bucket. Filenames are now sanitized before being used in the storage path. Also hardened the bucket itself: 15MB file size cap and an image-only MIME allowlist, so the (trivially-spoofable) client-side check isn't the only thing enforcing this
+- **`anon` had a live EXECUTE grant on `am_i_admin()`** that was never intended (migration 021 only grants to `authenticated`) — not actively exploitable (anonymous calls just return `false`), but flagged by Supabase's security advisor and didn't match documented intent. Revoked (migration 022)
+
+### Added
+- **Honeypot anti-spam field** on all three public forms (booking enquiry, EPK download, Media Hub email gate) — a hidden `website` field real visitors never see or fill in; submissions that fill it are silently discarded while still showing a normal success state, so bots don't learn to skip it
+- **`ConfigError` screen** in `App.jsx` — if `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` are missing at build time, the site now fails loudly with a clear message instead of a cryptic null-reference crash deep in some component
+- **`ProtectedRoute` now verifies real admin status**, not just "is logged in" — calls the new `am_i_admin()` RPC (via `frontend/src/lib/admin.js`) and shows a dedicated "Access denied" screen for authenticated-but-non-admin accounts. `LoginPage` does the same check and signs out any non-admin account that successfully authenticates rather than leaving it in a live session
+- **`netlify.toml`** — deploy config (base/build/publish, SPA redirect, security headers: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`). README updated with Netlify deploy steps
+- **`robots.txt`** (disallows `/admin`, `/login`) and **`sitemap.xml`** — both use a placeholder domain pending the real production domain
+- **`AdminPhotoUpload`** now surfaces a clear error if photos land in Storage but the `media_assets` insert fails, instead of silently reporting false success
+
+### Removed
+- Unused `xlsx` dependency (only ever used by a one-off import script, not any runtime code) — confirmed via a full search of `frontend/src` before removal
+
+### Notes
+- **Action required in Supabase Dashboard**: enable "Leaked Password Protection" (Authentication → Policies) — flagged by the security advisor, not something a SQL migration controls
+- Re-ran the Supabase security advisor after applying migrations 018–022: the only remaining findings are either by design (public insert-only policies on contact/log tables, `admins` having RLS with zero direct policies, `am_i_admin()` being callable by authenticated users — that's its entire purpose) or the leaked-password toggle above
+
+---
+
 ## v5.15.0 — Highlight reel activated with scroll-triggered autoplay
 
 ### Added

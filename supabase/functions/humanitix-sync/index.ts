@@ -16,15 +16,46 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const HUMANITIX_BASE_URL = "https://api.humanitix.com/v1";
 const PAGE_SIZE = 100;
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// This function is only ever called from the admin dashboard, never from a
+// third-party site, so CORS is locked down to known site origins instead of
+// "*". Set the SITE_URL secret (your Netlify or custom domain, no trailing
+// slash) and/or ALLOWED_ORIGINS (comma-separated) on the Edge Function to
+// add production URLs without redeploying code.
+function buildAllowedOrigins(): Set<string> {
+  const origins = new Set([
+    "https://kavapyramids.com",
+    "https://www.kavapyramids.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ]);
 
-function jsonResponse(body: unknown, status = 200) {
+  const siteUrl = Deno.env.get("SITE_URL");
+  if (siteUrl) origins.add(siteUrl.replace(/\/$/, ""));
+
+  const extra = Deno.env.get("ALLOWED_ORIGINS");
+  if (extra) {
+    for (const origin of extra.split(",")) {
+      const trimmed = origin.trim().replace(/\/$/, "");
+      if (trimmed) origins.add(trimmed);
+    }
+  }
+
+  return origins;
+}
+
+function corsHeaders(origin: string | null) {
+  const allowed = buildAllowedOrigins();
+  const allowOrigin = origin && allowed.has(origin) ? origin : "";
+  return {
+    ...(allowOrigin ? { "Access-Control-Allow-Origin": allowOrigin, "Vary": "Origin" } : {}),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
+
+function jsonResponse(body: unknown, status = 200, origin: string | null = null) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(origin), "Content-Type": "application/json" },
   });
 }
 
@@ -56,14 +87,18 @@ async function fetchAllOrders(eventId: string, apiKey: string) {
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("Origin");
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders(origin) });
   }
+
+  const respond = (body: unknown, status = 200) => jsonResponse(body, status, origin);
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader) {
-      return jsonResponse({ error: "Missing Authorization header — this function requires an authenticated caller." }, 401);
+      return respond({ error: "Missing Authorization header — this function requires an authenticated caller." }, 401);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -71,7 +106,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("HUMANITIX_API_KEY");
 
     if (!apiKey) {
-      return jsonResponse({ error: "HUMANITIX_API_KEY secret is not set on this function." }, 500);
+      return respond({ error: "HUMANITIX_API_KEY secret is not set on this function." }, 500);
     }
 
     // Client scoped to the caller's JWT — used only to verify they're a real authenticated user.
@@ -80,11 +115,29 @@ Deno.serve(async (req) => {
     });
     const { data: userData, error: userError } = await callerClient.auth.getUser();
     if (userError || !userData?.user) {
-      return jsonResponse({ error: "Unauthorized — a valid authenticated session is required to run this sync." }, 401);
+      return respond({ error: "Unauthorized — a valid authenticated session is required to run this sync." }, 401);
     }
 
     // Service-role client for the actual reads/writes against events and mailing_list.
     const db = createClient(supabaseUrl, serviceRoleKey);
+
+    // Being *authenticated* is not enough — this touches a third-party API key
+    // and real PII, so only users on the `admins` allowlist (see migration
+    // 018_admin_access_control.sql) may run it. The service-role client
+    // bypasses RLS, which is exactly what's needed to check this table since
+    // it has no public policies of its own.
+    const { data: adminRow, error: adminError } = await db
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+
+    if (adminError) {
+      return respond({ error: `Failed to verify admin access: ${adminError.message}` }, 500);
+    }
+    if (!adminRow) {
+      return respond({ error: "Forbidden — this account is not on the admin allowlist." }, 403);
+    }
 
     const { data: events, error: eventsError } = await db
       .from("events")
@@ -92,7 +145,7 @@ Deno.serve(async (req) => {
       .not("humanitix_event_id", "is", null);
 
     if (eventsError) {
-      return jsonResponse({ error: `Failed to load events: ${eventsError.message}` }, 500);
+      return respond({ error: `Failed to load events: ${eventsError.message}` }, 500);
     }
 
     const summary = {
@@ -183,10 +236,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    return jsonResponse(summary);
+    return respond(summary);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("humanitix-sync failed:", message);
-    return jsonResponse({ error: message }, 500);
+    return respond({ error: message }, 500);
   }
 });
