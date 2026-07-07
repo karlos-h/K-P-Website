@@ -211,19 +211,19 @@ export default function EpkPage() {
         </section>
 
         {/* Gig History */}
-        <section className="section section--dark">
+        <section className="section section--dark gig-history">
           <motion.div className="container" {...revealProps(0, reduceMotion)}>
             <p className="section-label">Gig History</p>
             <h2>Every Stage, Every City</h2>
             <div className="gig-history__grid" style={{ marginTop: "2rem" }}>
               {VENUES.map((group, index) => (
-                <motion.article key={group.region} {...revealProps(index * 0.1, reduceMotion)}>
+                <motion.article key={group.country} {...revealProps(index * 0.1, reduceMotion)}>
                   <p className="section-label" style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
-                    <MapPin size={12} /> {group.region}
+                    <MapPin size={12} /> {group.country}
                   </p>
-                  {group.venues.map((venue) => (
-                    <p key={venue} style={{ color: "var(--muted)", padding: "0.4rem 0", borderBottom: "1px solid var(--line)" }}>
-                      {venue}
+                  {group.cities.map((city) => (
+                    <p key={city} style={{ color: "var(--muted)", padding: "0.4rem 0", borderBottom: "1px solid var(--line)" }}>
+                      {city}
                     </p>
                   ))}
                 </motion.article>
@@ -277,7 +277,11 @@ export default function EpkPage() {
       <footer>
         <p className="wordmark">KAVA &amp; PYRAMIDS</p>
         <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
-        <small>© 2026 Kava &amp; Pyramids. All rights reserved.</small>
+        <div className="footer__links">
+          <a href="/media-hub">Photo Hub</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+        </div>
+        <small>© {new Date().getFullYear()} Kava &amp; Pyramids. All rights reserved.</small>
       </footer>
 
       {showModal && <EpkDownloadModal onClose={() => setShowModal(false)} />}

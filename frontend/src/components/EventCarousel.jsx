@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, X, Images, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Images, Calendar, ExternalLink } from "lucide-react";
 import { hoverLift, revealProps, EASE } from "../lib/motion";
 
 // ── Lightbox ─────────────────────────────────────────────────────────────────
@@ -60,7 +60,6 @@ function CarouselStrip({ photos, onPhotoClick, reduceMotion }) {
     const step = (ts) => {
       if (!pausedRef.current) {
         posRef.current += SCROLL_SPEED;
-        // Seamless loop: when we've scrolled half the total width (duplicated list), reset
         const half = track.scrollWidth / 2;
         if (posRef.current >= half) posRef.current -= half;
         track.style.transform = `translateX(-${posRef.current}px)`;
@@ -72,7 +71,6 @@ function CarouselStrip({ photos, onPhotoClick, reduceMotion }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [photos, reduceMotion]);
 
-  // Duplicate photos to make the loop seamless
   const items = photos.length >= 2 && !reduceMotion
     ? [...photos, ...photos]
     : photos;
@@ -99,6 +97,87 @@ function CarouselStrip({ photos, onPhotoClick, reduceMotion }) {
   );
 }
 
+// ── External gallery footer ───────────────────────────────────────────────────
+
+const MIN_EXTERNAL_PLACEHOLDERS = 6;
+
+function ExternalGallerySection({ galleryUrl, photographerName, photographerUrl, placeholderGrid }) {
+  const credit = photographerName
+    ? (photographerUrl
+        ? <a href={photographerUrl} target="_blank" rel="noopener noreferrer" className="carousel__photographer-link">{photographerName}</a>
+        : <span>{photographerName}</span>)
+    : null;
+
+  return (
+    <div className="carousel__external">
+      {credit && (
+        <p className="carousel__photographer-credit">Photography by {credit}</p>
+      )}
+      {placeholderGrid ? (
+        <a
+          href={galleryUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="carousel__external-grid-link"
+          aria-label="View full gallery"
+        >
+          <div className="carousel__external-grid">
+            {Array.from({ length: MIN_EXTERNAL_PLACEHOLDERS }).map((_, i) => (
+              <div key={i} className="carousel__external-grid-item">
+                <Images size={20} />
+              </div>
+            ))}
+          </div>
+          <div className="carousel__external-grid-cta">
+            View Full Gallery <ExternalLink size={13} />
+          </div>
+        </a>
+      ) : (
+        // Native photos already show real thumbnails above — this is just a
+        // slim, full-width link out to the rest of the gallery, not a preview.
+        <a
+          href={galleryUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="carousel__external-button"
+        >
+          View Full Gallery <ExternalLink size={13} />
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ── External-only card (no native photos) ────────────────────────────────────
+
+function ExternalOnlyCard({ group, delay, reduceMotion }) {
+  const { event_name, event_date, photo_gallery_url, photographer_name, photographer_url } = group;
+  const formattedDate = event_date
+    ? new Date(event_date).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+
+  return (
+    <motion.div className="event-carousel event-carousel--external-only" {...revealProps(delay, reduceMotion)}>
+      <div className="event-carousel__header event-carousel__header--static">
+        <div className="event-carousel__cover event-carousel__cover--empty">
+          <Images size={32} />
+        </div>
+        <div className="event-carousel__meta">
+          <h3>{event_name}</h3>
+          <p className="event-carousel__subtitle">{formattedDate ?? "Date TBC"}</p>
+        </div>
+      </div>
+      <ExternalGallerySection
+        galleryUrl={photo_gallery_url}
+        photographerName={photographer_name}
+        photographerUrl={photographer_url}
+        coverPhoto={null}
+        placeholderGrid
+      />
+    </motion.div>
+  );
+}
+
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 function CarouselEmpty() {
@@ -116,10 +195,33 @@ export default function EventCarousel({ group, delay = 0 }) {
   const reduceMotion = useReducedMotion();
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [expanded, setExpanded] = useState(false);
-  const { photos, event_name, event_date, cover } = group;
+
+  const {
+    photos,
+    event_name,
+    event_date,
+    cover,
+    photo_gallery_url,
+    photographer_name,
+    photographer_url,
+  } = group;
+
+  const hasNative = photos && photos.length > 0;
+  const hasExternal = !!photo_gallery_url;
+
+  // External-only: no native photos but has a gallery URL
+  if (!hasNative && hasExternal) {
+    return (
+      <ExternalOnlyCard
+        group={group}
+        delay={delay}
+        reduceMotion={!!reduceMotion}
+      />
+    );
+  }
 
   const formattedDate = event_date
-    ? new Date(event_date).toLocaleDateString("en-NZ", { month: "long", year: "numeric" })
+    ? new Date(event_date).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
   return (
@@ -141,8 +243,8 @@ export default function EventCarousel({ group, delay = 0 }) {
           </div>
         )}
         <div className="event-carousel__meta">
-          <p className="section-label">{formattedDate ?? "Event"}</p>
           <h3>{event_name}</h3>
+          <p className="event-carousel__subtitle">{formattedDate ?? "Date TBC"}</p>
           <span className="event-carousel__count">
             {photos.length} photo{photos.length !== 1 ? "s" : ""} — click to browse
           </span>
@@ -150,7 +252,7 @@ export default function EventCarousel({ group, delay = 0 }) {
       </button>
 
       {/* ── Scrolling strip ── */}
-      {photos.length > 0 ? (
+      {hasNative ? (
         <CarouselStrip
           photos={photos}
           onPhotoClick={setLightboxIndex}
@@ -158,6 +260,15 @@ export default function EventCarousel({ group, delay = 0 }) {
         />
       ) : (
         <CarouselEmpty />
+      )}
+
+      {/* ── External gallery section (when native photos also exist) ── */}
+      {hasExternal && (
+        <ExternalGallerySection
+          galleryUrl={photo_gallery_url}
+          photographerName={photographer_name}
+          photographerUrl={photographer_url}
+        />
       )}
 
       {/* ── Full-screen grid overlay ── */}

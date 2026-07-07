@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 const BUCKET = "event-photos";
@@ -37,7 +37,7 @@ function FileRow({ file, progress, error, isCover, onSetCover, publicUrl }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function AdminPhotoUpload({ events, onDone, defaultSlug }) {
+export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultEventName, defaultEventDate }) {
   const fileInputRef = useRef(null);
 
   // When defaultSlug is provided (from gallery detail view), lock to that event.
@@ -46,10 +46,10 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug }) {
   const [mode, setMode] = useState("existing"); // "existing" | "new"
   const [selectedEventId, setSelectedEventId] = useState(() => {
     if (!defaultSlug) return "";
-    // Try to find the event whose slugified form matches defaultSlug
+    // Try to find the event whose slugified form (title + sort_date) matches defaultSlug
     return events.find((e) => {
       const base = (e.title ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      const slug = e.date ? `${base}-${e.date}` : base;
+      const slug = e.sort_date ? `${base}-${e.sort_date}` : base;
       return slug === defaultSlug;
     })?.id ?? "";
   });
@@ -65,8 +65,15 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug }) {
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
 
-  const resolvedName = mode === "existing" ? selectedEvent?.title ?? "" : newEventName;
-  const resolvedDate = mode === "existing" ? selectedEvent?.date ?? "" : newEventDate;
+  // When locked to an existing gallery, trust the gallery group's own event_name/
+  // event_date (passed down directly) rather than relying on selectedEvent, which
+  // can fail to resolve if this event's slug isn't found in the events list.
+  const resolvedName = lockedBySlug
+    ? (defaultEventName || selectedEvent?.title || "")
+    : (mode === "existing" ? selectedEvent?.title ?? "" : newEventName);
+  const resolvedDate = lockedBySlug
+    ? (defaultEventDate || selectedEvent?.sort_date || "")
+    : (mode === "existing" ? selectedEvent?.sort_date ?? "" : newEventDate);
   const resolvedSlug = slugify(resolvedName, resolvedDate);
 
   const handleFiles = (e) => {
@@ -190,16 +197,14 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug }) {
           type="file"
           accept="image/*"
           multiple
-          // webkitdirectory allows folder selection in Chrome/Edge
-          webkitdirectory=""
           style={{ display: "none" }}
           onChange={handleFiles}
         />
         {files.length === 0 ? (
           <>
             <span style={rs.dropIcon}>📁</span>
-            <span style={rs.dropText}>Click to select a folder or multiple photos</span>
-            <span style={rs.dropHint}>Accepts JPG, PNG, WebP — folder selection works in Chrome/Edge</span>
+            <span style={rs.dropText}>Click to select photos</span>
+            <span style={rs.dropHint}>Accepts JPG, PNG, WebP — select multiple files at once (Ctrl/Cmd-click, or Ctrl/Cmd+A for a whole folder)</span>
           </>
         ) : (
           <span style={rs.dropText}>{files.length} photo{files.length !== 1 ? "s" : ""} selected — click to change</span>

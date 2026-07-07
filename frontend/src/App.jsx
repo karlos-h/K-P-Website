@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage'
 import AdminDashboard from './pages/AdminDashboard'
 import MediaHubPage from './pages/MediaHubPage'
 import EpkPage from './pages/EpkPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/media-hub" element={<MediaHubPage />} />
         <Route path="/epk" element={<EpkPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route
           path="/admin"
           element={

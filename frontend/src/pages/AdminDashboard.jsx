@@ -5,12 +5,16 @@ import { supabase } from '../lib/supabase'
 import AdminPhotoUpload from '../components/AdminPhotoUpload'
 import AdminEventsManager from '../components/AdminEventsManager'
 import AdminGalleryManager from '../components/AdminGalleryManager'
+import AdminMailingList from '../components/AdminMailingList'
+import AdminTrustedVenues from '../components/AdminTrustedVenues'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [enquiries, setEnquiries] = useState([])
   const [events, setEvents] = useState([])
+  const [contacts, setContacts] = useState([])
+  const [venues, setVenues] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [activeTab, setActiveTab] = useState('enquiries')
@@ -25,8 +29,12 @@ export default function AdminDashboard() {
         .select('*')
         .order('created_at', { ascending: false })
       if (!error) setEnquiries(data)
-      const { data: evData } = await supabase.from('events').select('id, title, date, sort_date, location, type, status').order('created_at', { ascending: false })
+      const { data: evData } = await supabase.from('events').select('*').order('created_at', { ascending: false })
       if (evData) setEvents(evData)
+      const { data: mlData } = await supabase.from('mailing_list').select('*').order('created_at', { ascending: false })
+      if (mlData) setContacts(mlData)
+      const { data: venueData } = await supabase.from('trusted_venues').select('*').order('sort_order')
+      if (venueData) setVenues(venueData)
       setLoading(false)
     }
     init()
@@ -76,10 +84,10 @@ export default function AdminDashboard() {
       <div style={s.content}>
         {/* ── Tab selector ── */}
         <div style={s.tabRow}>
-          {[['enquiries', 'Enquiries'], ['events', 'Events'], ['gallery', 'Gallery'], ['photos', 'Photo Upload']].map(([id, label]) => (
+          {[['enquiries', 'Enquiries'], ['events', 'Events'], ['gallery', 'Gallery'], ['photos', 'Photo Upload'], ['mailing', 'Mailing List'], ['venues', 'Venues']].map(([id, label]) => (
             <button
               key={id}
-              style={{ ...s.tabBtn, ...(activeTab === id ? s.tabBtnActive : {}) }}
+              className={`admin-tab-btn ${activeTab === id ? 'admin-tab-btn--active' : ''}`}
               onClick={() => setActiveTab(id)}
             >
               {label}
@@ -97,6 +105,14 @@ export default function AdminDashboard() {
 
         {activeTab === 'gallery' && (
           <AdminGalleryManager events={events} />
+        )}
+
+        {activeTab === 'mailing' && (
+          <AdminMailingList contacts={contacts} setContacts={setContacts} />
+        )}
+
+        {activeTab === 'venues' && (
+          <AdminTrustedVenues venues={venues} setVenues={setVenues} />
         )}
 
         {activeTab === 'enquiries' && <>
@@ -202,8 +218,6 @@ const s = {
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#888', padding: '0.4rem 1rem', fontSize: '0.7rem', cursor: 'pointer', fontFamily: 'inherit' },
   content: { padding: '2rem' },
   tabRow: { display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid #1a1a1a', paddingBottom: '1rem' },
-  tabBtn: { background: 'transparent', border: '1px solid #222', color: '#555', padding: '0.5rem 1.25rem', fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' },
-  tabBtnActive: { borderColor: '#C9A84C', color: '#C9A84C' },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' },
   statCard: { background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '1.5rem', textAlign: 'center' },
   statValue: { fontSize: '2.5rem', fontWeight: 700, fontFamily: "'Playfair Display', serif", lineHeight: 1 },

@@ -22,13 +22,13 @@ import EventCarousel from "../components/EventCarousel";
 import { useEventGalleries } from "../hooks/useEventGalleries";
 import YouTubeGrid from "../components/YouTubeGrid";
 import SocialFeed from "../components/SocialFeed";
+import TikTokFeed from "../components/TikTokFeed";
 import {
   BOOKING_FEATURES,
   GALLERY_ITEMS,
   GENRES,
   HIGHLIGHT_REEL_EMBED,
   LINKTREE_URL,
-  RESIDENCIES,
   SOCIAL_LINKS,
   TIMELINE,
   VENUES,
@@ -36,7 +36,7 @@ import {
 import { supabase } from "../lib/supabase";
 import { revealProps, sceneProps } from "../lib/motion";
 
-const NAV_LINKS = ["Home", "About", "Events", "Videos", "Gallery", "Press Kit", "Contact"];
+const NAV_LINKS = ["Home", "About", "Events", "Listen", "Watch", "Gallery", "Press Kit", "Contact"];
 const NAV_EXTERNAL = [
   { label: "Media Hub", href: "/media-hub" },
   { label: "EPK", href: "/epk" },
@@ -156,7 +156,7 @@ function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       const [eventsRes, statsRes, venuesRes, mixesRes] = await Promise.all([
-        supabase.from("events").select("*").order("created_at", { ascending: false }),
+        supabase.from("events").select("*").order("sort_date", { ascending: false, nullsFirst: false }),
         supabase.from("stats").select("*").order("sort_order"),
         supabase.from("trusted_venues").select("*").order("sort_order"),
         supabase.from("mixes").select("*").order("created_at"),
@@ -218,7 +218,17 @@ function HomePage() {
     }
   };
 
-  const filteredEvents = events.filter((event) => event.status === eventTab);
+  // Upcoming: soonest date first. Past: most recent first. Undated events sort last either way.
+  const filteredEvents = events
+    .filter((event) => event.status === eventTab)
+    .slice()
+    .sort((a, b) => {
+      const timeA = a.sort_date ? new Date(a.sort_date).getTime() : NaN;
+      const timeB = b.sort_date ? new Date(b.sort_date).getTime() : NaN;
+      const safeA = Number.isNaN(timeA) ? Infinity : timeA;
+      const safeB = Number.isNaN(timeB) ? Infinity : timeB;
+      return eventTab === "upcoming" ? safeA - safeB : safeB - safeA;
+    });
   const nextEvent = pickNextEvent(events);
 
   return (
@@ -356,17 +366,28 @@ function HomePage() {
           <Container>
             <SectionHeading label="Trusted By" title="Stages That Know Our Energy" align="center" />
             <div className="trusted__grid">
-              {trustedVenues.map((venue, index) => (
-                <motion.article
-                  className="trusted-card"
-                  key={venue.name}
-                  {...revealProps(index * 0.06, prefersReducedMotion)}
-                >
-                    <div className="trusted-card__mark">{venue.initials}</div>
+              {trustedVenues.map((venue, index) => {
+                const Tag = venue.website_url ? motion.a : motion.article;
+                const linkProps = venue.website_url
+                  ? { href: venue.website_url, target: "_blank", rel: "noopener noreferrer" }
+                  : {};
+                return (
+                  <Tag
+                    className="trusted-card"
+                    key={venue.name}
+                    {...linkProps}
+                    {...revealProps(index * 0.06, prefersReducedMotion)}
+                  >
+                    {venue.logo_url ? (
+                      <img className="trusted-card__logo" src={venue.logo_url} alt={venue.name} />
+                    ) : (
+                      <div className="trusted-card__mark">{venue.initials}</div>
+                    )}
                     <h3>{venue.name}</h3>
                     <p>{venue.type}</p>
-                </motion.article>
-                ))}
+                  </Tag>
+                );
+              })}
             </div>
           </Container>
         </section>
@@ -412,14 +433,6 @@ function HomePage() {
                   Kong Bar on Saturdays, Original Sin on Fridays, peak-time slots either way. In
                   2025 that reach grew to Fiji. In 2026, Australia.
                 </p>
-                <div className="residencies" aria-label="Current weekly residencies">
-                  {RESIDENCIES.map((residency) => (
-                    <span key={residency.venue}>
-                      <strong>{residency.venue}</strong>
-                      {residency.night}
-                    </span>
-                  ))}
-                </div>
                 <button className="button button--outline" onClick={() => scrollTo("Contact")}>
                   Book a Show
                 </button>
@@ -435,7 +448,7 @@ function HomePage() {
                     <span>{item.year}</span>
                     <div>
                       <strong>{item.title}</strong>
-                      {activeTimeline === index && <p>{item.desc}</p>}
+                      {activeTimeline === index && item.desc && <p>{item.desc}</p>}
                     </div>
                   </motion.button>
                 ))}
@@ -487,22 +500,37 @@ function HomePage() {
                 </button>
               ))}
             </div>
-            <div className="events__list">
+            <div className={eventTab === "past" ? "events__list events__list--scrollable" : "events__list"}>
               {filteredEvents.map((event, index) => (
                 <motion.article
                   className="event-card"
-                  key={event.title}
-                  {...revealProps(index * 0.06, prefersReducedMotion)}
+                  key={`${event.title}-${event.sort_date || index}`}
+                  {...revealProps(index * 0.04, prefersReducedMotion)}
                 >
                   <div className="event-card__date">
                     <CalendarDays size={18} />
                     <span>{event.date}</span>
+                    {event.performance_time && (
+                      <span className="event-card__time">{event.performance_time}</span>
+                    )}
                   </div>
                   <div>
                     <h3>{event.title}</h3>
                     <p>{event.location}</p>
                   </div>
-                  <span className="pill">{event.type}</span>
+                  <div className="event-card__actions">
+                    <span className="pill">{event.type}</span>
+                    {event.ticket_url && (
+                      <a
+                        className="button button--gold event-card__tickets"
+                        href={event.ticket_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Buy Tickets
+                      </a>
+                    )}
+                  </div>
                 </motion.article>
               ))}
             </div>
@@ -545,10 +573,23 @@ function HomePage() {
                 </motion.article>
                 ))}
             </div>
+            <motion.div
+              style={{ textAlign: "center", marginTop: "3rem" }}
+              {...revealProps(0, prefersReducedMotion)}
+            >
+              <a
+                className="button button--outline"
+                href="https://soundcloud.com/kavapyramids"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Radio size={17} /> Follow on SoundCloud
+              </a>
+            </motion.div>
           </Container>
         </section>
 
-        <section id="videos" className="section videos">
+        <section id="watch" className="section videos">
           <Container>
             <SectionHeading
               label="Watch"
@@ -600,23 +641,45 @@ function HomePage() {
           <Container>
             <SectionHeading
               label="Follow the Journey"
-              title="@kava_pyramids"
-              copy="Behind the decks, on the road, and every moment between. Follow us on Instagram."
+              title="The Feed"
+              copy="Behind the decks, on the road, and every moment between."
               align="center"
             />
-            <SocialFeed />
-            <motion.div
-              style={{ textAlign: "center", marginTop: "2.5rem" }}
-              {...revealProps(0, prefersReducedMotion)}
-            >
-              <a
-                className="button button--outline"
-                href="https://www.instagram.com/kava_pyramids/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Instagram size={17} /> Follow on Instagram
-              </a>
+
+            <motion.div className="platform-feed" {...revealProps(0, prefersReducedMotion)}>
+              <div className="platform-feed__header">
+                <span className="platform-feed__handle">
+                  <Instagram size={16} /> @kava_pyramids
+                </span>
+                <a
+                  className="button button--outline button--small"
+                  href="https://www.instagram.com/kava_pyramids/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Follow on Instagram
+                </a>
+              </div>
+              <SocialFeed />
+            </motion.div>
+
+            <motion.div className="platform-feed" {...revealProps(0.06, prefersReducedMotion)}>
+              <div className="platform-feed__header">
+                <span className="platform-feed__handle">
+                  <Music2 size={16} /> @kavaxpyramids
+                </span>
+                <a
+                  className="button button--outline button--small"
+                  href="https://www.tiktok.com/@kavaxpyramids"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Follow on TikTok
+                </a>
+              </div>
+              <div className="tiktok-feed-frame">
+                <TikTokFeed />
+              </div>
             </motion.div>
           </Container>
         </section>
@@ -662,9 +725,9 @@ function HomePage() {
                   alongside international shows in Fiji.
                 </p>
                 <p>
-                  Known for high-energy, open-format sets across Hip-Hop, R&amp;B, Pop, and
-                  Afrobeats — with an ear on current club sounds like Baile Funk, Miami Bass, and
-                  Jersey Club — they read the room and keep it moving.
+                  Known for high-energy, open-format sets across Hip-Hop, R&amp;B, Pop, Afrobeats,
+                  and Global Sounds — with an ear on current club sounds like Baile Funk, Miami
+                  Bass, and Jersey Club — they read the room and keep it moving.
                 </p>
                 <div className="button-row">
                   <a className="button button--gold" href="/epk">
@@ -698,9 +761,9 @@ function HomePage() {
             <SectionHeading label="Gig History" title="Every Stage, Every City" />
             <div className="gig-history__grid">
               {VENUES.map((group, index) => (
-                <motion.article key={group.region} {...revealProps(index * 0.1, prefersReducedMotion)}>
-                  <SectionLabel>{group.region}</SectionLabel>
-                  {group.venues.map((venue) => <p key={venue}>{venue}</p>)}
+                <motion.article key={group.country} {...revealProps(index * 0.1, prefersReducedMotion)}>
+                  <SectionLabel>{group.country}</SectionLabel>
+                  {group.cities.map((city) => <p key={city}>{city}</p>)}
                 </motion.article>
               ))}
             </div>
@@ -782,11 +845,12 @@ function HomePage() {
           <a href="/media-hub">Photo Hub</a>
           <a href="/epk">Press Kit</a>
           <a href={LINKTREE_URL} target="_blank" rel="noreferrer">Linktree</a>
+          <a href="/privacy-policy">Privacy Policy</a>
           {SOCIAL_LINKS.map((s) => (
             <a key={s.name} href={s.url} target="_blank" rel="noreferrer">{s.name}</a>
           ))}
         </div>
-        <small>© 2026 Kava &amp; Pyramids. All rights reserved.</small>
+        <small>© {new Date().getFullYear()} Kava &amp; Pyramids. All rights reserved.</small>
         <a href="/login" style={{ display: 'block', marginTop: '1.5rem', color: '#2a2a2a', fontSize: '0.6rem' }}>·</a>
       </footer>
     </div>

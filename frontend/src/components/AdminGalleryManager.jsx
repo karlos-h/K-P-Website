@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { useEventGalleries } from "../hooks/useEventGalleries";
+import { useCombinedGalleries } from "../hooks/useCombinedGalleries";
 import AdminPhotoUpload from "./AdminPhotoUpload";
 
 const BUCKET = "event-photos";
+
+function slugify(text, date) {
+  const base = (text ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return date ? `${base}-${date}` : base;
+}
 
 // Extract the storage path from a public URL.
 // URLs look like: https://<project>.supabase.co/storage/v1/object/public/event-photos/slug/file.jpg
@@ -54,6 +59,37 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
   const [deleting, setDeleting] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [error, setError] = useState("");
+  const [relinking, setRelinking] = useState(false);
+
+  // Best-effort match of this gallery's photos to a real event, so the
+  // "Linked Event" dropdown starts on the right value when there is one.
+  const matchedEventId = events.find(
+    (e) => slugify(e.title, e.sort_date) === group.slug
+  )?.id ?? "";
+  const [linkedEventId, setLinkedEventId] = useState(matchedEventId);
+
+  const handleRelink = async () => {
+    const newEvent = events.find((e) => e.id === linkedEventId);
+    if (!newEvent || group.photos.length === 0) return;
+    setRelinking(true);
+    setError("");
+
+    const newSlug = slugify(newEvent.title, newEvent.sort_date);
+    const ids = group.photos.map((p) => p.id);
+    const { error: relinkError } = await supabase
+      .from("media_assets")
+      .update({
+        event_slug: newSlug,
+        event_name: newEvent.title,
+        event_date: newEvent.sort_date || null,
+      })
+      .in("id", ids);
+
+    if (relinkError) { setError(relinkError.message); setRelinking(false); return; }
+
+    setRelinking(false);
+    onRefresh();
+  };
 
   const handleSetCover = async (photo) => {
     setError("");
@@ -100,7 +136,7 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
   };
 
   const formattedDate = group.event_date
-    ? new Date(group.event_date).toLocaleDateString("en-NZ", { month: "long", year: "numeric" })
+    ? new Date(group.event_date).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
   return (
@@ -112,8 +148,41 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
           <p style={g.detailLabel}>{formattedDate ?? "Event Gallery"}</p>
           <h2 style={g.detailTitle}>{group.event_name}</h2>
           <p style={g.detailCount}>{group.photos.length} photo{group.photos.length !== 1 ? "s" : ""}</p>
+          {group.photo_gallery_url && (
+            <p style={g.externalLinkRow}>
+              External gallery:{" "}
+              <a href={group.photo_gallery_url} target="_blank" rel="noopener noreferrer" style={g.externalLink}>
+                {group.photo_gallery_url}
+              </a>
+              {group.photographer_name && <span> — Photography by {group.photographer_name}</span>}
+            </p>
+          )}
         </div>
       </div>
+
+      {/* Linked event — editable so photos can be reassigned to the correct event */}
+      {group.photos.length > 0 && (
+        <div style={g.relinkRow}>
+          <span style={g.relinkLabel}>Linked Event</span>
+          <select
+            style={g.relinkSelect}
+            value={linkedEventId}
+            onChange={(e) => setLinkedEventId(e.target.value)}
+          >
+            <option value="">— not linked to an event —</option>
+            {events.map((ev) => (
+              <option key={ev.id} value={ev.id}>{ev.title} ({ev.date})</option>
+            ))}
+          </select>
+          <button
+            style={{ ...g.relinkBtn, ...((!linkedEventId || linkedEventId === matchedEventId || relinking) ? g.relinkBtnDisabled : {}) }}
+            onClick={handleRelink}
+            disabled={!linkedEventId || linkedEventId === matchedEventId || relinking}
+          >
+            {relinking ? "Saving…" : "Save Link"}
+          </button>
+        </div>
+      )}
 
       {error && <div style={g.errorBanner}>{error}</div>}
 
@@ -155,6 +224,8 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
         <AdminPhotoUpload
           events={events}
           defaultSlug={group.slug}
+          defaultEventName={group.event_name}
+          defaultEventDate={group.event_date}
           onDone={onRefresh}
         />
       </div>
@@ -177,7 +248,7 @@ function GalleryList({ galleries, onSelect }) {
     <div style={g.galleryList}>
       {galleries.map(group => {
         const formattedDate = group.event_date
-          ? new Date(group.event_date).toLocaleDateString("en-NZ", { month: "long", year: "numeric" })
+          ? new Date(group.event_date).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })
           : null;
 
         return (
@@ -196,12 +267,15 @@ function GalleryList({ galleries, onSelect }) {
               />
             ) : (
               <div style={{ ...g.rowThumb, background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: "0.7rem" }}>
-                No cover
+                {group.photo_gallery_url ? "External" : "No cover"}
               </div>
             )}
             <div style={g.rowMeta}>
               <span style={g.rowTitle}>{group.event_name}</span>
-              <span style={g.rowSub}>{formattedDate ?? "No date"} · {group.photos.length} photo{group.photos.length !== 1 ? "s" : ""}</span>
+              <span style={g.rowSub}>
+                {formattedDate ?? "No date"} · {group.photos.length} photo{group.photos.length !== 1 ? "s" : ""}
+                {group.photo_gallery_url && " · Lightroom link"}
+              </span>
             </div>
             <span style={g.rowArrow}>→</span>
           </button>
@@ -214,7 +288,7 @@ function GalleryList({ galleries, onSelect }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminGalleryManager({ events }) {
-  const { galleries, loading, refetch } = useEventGalleries();
+  const { galleries, loading, refetch } = useCombinedGalleries();
   const [selected, setSelected] = useState(null);
 
   // When data refreshes, update the selected group from the new data
@@ -254,6 +328,13 @@ const g = {
   detailLabel: { fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#C9A84C", margin: "0 0 0.25rem" },
   detailTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.6rem", margin: "0 0 0.25rem", color: "#f0ece3" },
   detailCount: { color: "#555", fontSize: "0.78rem", margin: 0 },
+  externalLinkRow: { color: "#666", fontSize: "0.78rem", margin: "0.5rem 0 0" },
+  externalLink: { color: "#C9A84C", wordBreak: "break-all" },
+  relinkRow: { display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.25rem", padding: "0.85rem 1rem", background: "#0d0d0d", border: "1px solid #1a1a1a" },
+  relinkLabel: { fontSize: "0.62rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#555", flexShrink: 0 },
+  relinkSelect: { flex: 1, minWidth: "220px", background: "#111", border: "1px solid #222", color: "#f0ece3", padding: "0.5rem 0.65rem", fontSize: "0.8rem", fontFamily: "inherit" },
+  relinkBtn: { background: "#C9A84C", border: "none", color: "#090909", padding: "0.5rem 1.1rem", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit" },
+  relinkBtnDisabled: { opacity: 0.4, cursor: "not-allowed" },
   errorBanner: { background: "rgba(224,92,92,0.1)", border: "1px solid rgba(224,92,92,0.3)", color: "#e07070", padding: "0.65rem 1rem", fontSize: "0.78rem", marginBottom: "1rem" },
   confirmBox: { background: "#0d0d0d", border: "1px solid rgba(224,92,92,0.3)", padding: "1.25rem 1.5rem", marginBottom: "1.25rem" },
   deleteSolidBtn: { background: "#8b1a1a", border: "none", color: "#f0ece3", padding: "0.6rem 1.25rem", fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" },

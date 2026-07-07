@@ -220,9 +220,10 @@ p { color: var(--muted); line-height: 1.8; }
 
 .trusted { background: #0a0a0a; }
 .trusted__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .7rem; }
-.trusted-card { min-height: 190px; padding: 1.7rem 1rem; border: 1px solid var(--line); text-align: center; transition: .25s ease; }
+.trusted-card { display: block; min-height: 190px; padding: 1.7rem 1rem; border: 1px solid var(--line); text-align: center; transition: .25s ease; text-decoration: none; color: inherit; }
 .trusted-card:hover { border-color: rgba(201,168,76,.55); background: #0e0e0e; transform: translateY(-5px); }
 .trusted-card__mark { display: grid; place-items: center; width: 54px; height: 54px; margin: 0 auto 1.25rem; border: 1px solid rgba(201,168,76,.35); border-radius: 50%; color: var(--gold); font-family: "Playfair Display", serif; font-weight: 700; }
+.trusted-card__logo { width: 54px; height: 54px; margin: 0 auto 1.25rem; border-radius: 50%; object-fit: cover; display: block; }
 .trusted-card h3 { margin-bottom: .45rem; font-size: 1rem; }
 .trusted-card p { margin: 0; color: #625f5a; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; }
 
@@ -267,12 +268,19 @@ p { color: var(--muted); line-height: 1.8; }
 .tabs button, .gallery__filters button { padding: .65rem 1.1rem; border: 1px solid #282828; background: transparent; color: #77736d; cursor: pointer; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; transition: .2s ease; }
 .tabs button.is-active, .gallery__filters button.is-active, .tabs button:hover, .gallery__filters button:hover { border-color: var(--gold); color: var(--gold); }
 .events__list { display: grid; gap: .75rem; }
+.events__list--scrollable { max-height: 19rem; overflow-y: auto; padding-right: .5rem; scrollbar-width: thin; scrollbar-color: var(--gold) #111; }
+.events__list--scrollable::-webkit-scrollbar { width: 4px; }
+.events__list--scrollable::-webkit-scrollbar-track { background: #111; }
+.events__list--scrollable::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
 .event-card { display: grid; grid-template-columns: 190px 1fr auto; align-items: center; gap: 2rem; padding: 1.8rem 2rem; border: 1px solid #1e1e1e; background: #0b0b0b; transition: .25s ease; }
 .event-card:hover { border-color: var(--line); transform: translateX(4px); }
-.event-card__date { display: flex; align-items: center; gap: .8rem; color: var(--gold); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.event-card__date { display: flex; align-items: center; gap: .8rem; color: var(--gold); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; flex-wrap: wrap; }
+.event-card__time { color: var(--muted); font-size: .68rem; letter-spacing: .05em; text-transform: none; }
 .event-card h3 { margin-bottom: .3rem; font-size: 1.35rem; }
 .event-card p { margin: 0; font-size: .8rem; }
 .pill { padding: .45rem .8rem; border: 1px solid #292929; color: #77736d; font-size: .59rem; letter-spacing: .13em; text-transform: uppercase; }
+.event-card__actions { display: flex; flex-direction: row; align-items: center; gap: .6rem; }
+.event-card__tickets { font-size: .59rem; padding: .45rem .8rem; white-space: nowrap; text-decoration: none; letter-spacing: .13em; }
 
 .music__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .music-card { overflow: hidden; border: 1px solid #222; background: #0a0a0a; transition: .25s ease; }
@@ -664,6 +672,64 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 .social-feed { width: 100%; }
 .social-feed behold-widget { display: block; width: 100%; }
 
+.button--small { min-height: 36px; padding: .5rem 1.1rem; font-size: .62rem; }
+
+/* Platform header row (handle + follow button) shared by Instagram/TikTok blocks */
+.platform-feed + .platform-feed { margin-top: 3rem; }
+.platform-feed__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.platform-feed__handle {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--cream);
+  font-weight: 600;
+  font-size: .95rem;
+}
+.platform-feed__handle svg { color: var(--gold); flex-shrink: 0; }
+
+/* TikTok widget (SociableKit) — restyle to match the site's dark/gold grid language.
+   The widget ships its own header/follow button (mismatched blue); we hide it and
+   use our own .platform-feed__header instead for visual consistency with Instagram. */
+.tiktok-feed-frame .sk-posts-header { display: none !important; }
+.tiktok-feed-frame .sk-widget-loader { margin: 2rem auto; }
+.tiktok-feed-frame .sk-posts-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: .5rem !important;
+}
+.tiktok-feed-frame .sk-post-item {
+  aspect-ratio: 1 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  overflow: hidden;
+  position: relative !important;
+  transition: border-color .25s ease, transform .25s ease;
+}
+.tiktok-feed-frame .sk-post-item:hover { border-color: rgba(201, 168, 76, .55); transform: translateY(-3px); }
+.tiktok-feed-frame .sk-post-image {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+.tiktok-feed-frame .sk-post-image img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+.tiktok-feed-frame .sk-post-plays { color: var(--cream); font-size: .68rem; }
+.tiktok-feed-frame .sk-post-tticon { opacity: .35; }
+
 /* Social feed placeholder (shown before Behold is configured) */
 .social-feed--placeholder { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
 .social-feed__placeholder-grid {
@@ -702,6 +768,8 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 @media (max-width: 640px) {
   .social-feed__placeholder-grid { grid-template-columns: repeat(3, 1fr); }
   .youtube-grid { grid-template-columns: 1fr; }
+  .tiktok-feed-frame .sk-posts-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .platform-feed__header { justify-content: center; text-align: center; }
 }
 
 /* ── Modal (EPK download gate) ── */
@@ -813,6 +881,8 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
+  width: 100%;
 }
 
 .event-carousel__header {
@@ -873,10 +943,17 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   color: var(--muted);
   letter-spacing: 0.04em;
 }
+.event-carousel__subtitle {
+  font-size: 0.75rem;
+  color: var(--gold-light);
+  letter-spacing: 0.04em;
+  margin: 0;
+}
 
 /* Scrolling strip */
 .carousel__viewport {
   width: 100%;
+  min-width: 0;
   overflow: hidden;
   position: relative;
 }
@@ -960,8 +1037,139 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   border-color: var(--gold);
 }
 
+/* External gallery section (below native carousel, or standalone) */
+.carousel__external {
+  border-top: 1px solid var(--line);
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.carousel__photographer-credit {
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+.carousel__photographer-link {
+  color: var(--gold);
+  text-decoration: none;
+}
+.carousel__photographer-link:hover {
+  text-decoration: underline;
+}
+
+/* Full-width "View Full Gallery" link — used when native photos already show
+   real thumbnails above, so this is just a slim CTA, not another preview. */
+.carousel__external-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.85rem;
+  color: var(--gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  text-decoration: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.carousel__external-button:hover {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.08);
+}
+
+/* Placeholder photo grid for external-only galleries (photos to be uploaded later) */
+.carousel__external-grid-link { display: block; text-decoration: none; }
+.carousel__external-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.4rem;
+}
+.carousel__external-grid-item {
+  aspect-ratio: 1;
+  background: #111;
+  border: 1px dashed var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  border-radius: 0.25rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+.carousel__external-grid-link:hover .carousel__external-grid-item {
+  border-color: rgba(201, 168, 76, 0.5);
+  color: var(--gold);
+}
+.carousel__external-grid-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  color: var(--gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  padding: 0.75rem;
+  transition: border-color 0.2s;
+}
+.carousel__external-grid-link:hover .carousel__external-grid-cta {
+  border-color: var(--gold);
+}
+
+/* External-only card (no native photos) */
+.event-carousel--external-only .event-carousel__header--static {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: default;
+}
+
 @media (max-width: 640px) {
   .event-carousel__cover { width: 76px; height: 52px; }
   .carousel__thumb img { width: 120px; height: 80px; }
   .carousel__expanded-grid { grid-template-columns: repeat(2, 1fr); }
+  .carousel__external-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Admin dashboard tab selector — explicit states so only the active tab is gold */
+.admin-tab-btn {
+  background: transparent;
+  border: 1px solid #222;
+  color: #555;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-tab-btn:hover,
+.admin-tab-btn:focus,
+.admin-tab-btn:focus-visible,
+.admin-tab-btn:active {
+  color: #888;
+  border-color: #333;
+}
+.admin-tab-btn--active,
+.admin-tab-btn--active:hover,
+.admin-tab-btn--active:focus,
+.admin-tab-btn--active:focus-visible,
+.admin-tab-btn--active:active {
+  border-color: #C9A84C;
+  color: #C9A84C;
 }

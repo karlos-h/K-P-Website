@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Download, Filter, Image, X, ChevronLeft, ChevronRight, Mail } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import EventCarousel from "../components/EventCarousel";
-import { useEventGalleries } from "../hooks/useEventGalleries";
+import { useCombinedGalleries } from "../hooks/useCombinedGalleries";
 
 const STORAGE_KEY = "kp_media_hub_email";
 
@@ -112,7 +112,7 @@ function Lightbox({ assets, index, onClose, onPrev, onNext }) {
 
 export default function MediaHubPage() {
   const [unlockedEmail, setUnlockedEmail] = useState(() => localStorage.getItem(STORAGE_KEY));
-  const { galleries, loading } = useEventGalleries();
+  const { galleries, loading } = useCombinedGalleries();
 
   // Flat fallback when Supabase has no grouped data yet
   const [flatAssets, setFlatAssets] = useState(MOCK_ASSETS);
@@ -165,7 +165,11 @@ export default function MediaHubPage() {
       <footer>
         <p className="wordmark">KAVA &amp; PYRAMIDS</p>
         <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
-        <small>© 2026 Kava &amp; Pyramids. All rights reserved.</small>
+        <div className="footer__links">
+          <a href="/epk">Press Kit</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+        </div>
+        <small>© {new Date().getFullYear()} Kava &amp; Pyramids. All rights reserved.</small>
       </footer>
     </div>
   );
