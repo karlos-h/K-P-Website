@@ -138,6 +138,7 @@ function HomePage() {
     event: "",
     email: "",
     message: "",
+    website: "", // honeypot — real visitors never fill this in, bots often do
   });
   const [formSent, setFormSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -212,6 +213,15 @@ function HomePage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // Honeypot: bots tend to fill every field, real visitors never see or touch
+    // this one. Pretend success so the bot doesn't learn to skip it.
+    if (contactForm.website) {
+      setFormSent(true);
+      setContactForm({ name: "", company: "", event: "", email: "", message: "", website: "" });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { error } = await supabase
@@ -226,7 +236,7 @@ function HomePage() {
 
       if (!error) {
         setFormSent(true);
-        setContactForm({ name: "", company: "", event: "", email: "", message: "" });
+        setContactForm({ name: "", company: "", event: "", email: "", message: "", website: "" });
       } else {
         console.error("SUPABASE ERROR:", error);
         alert(error.message);
@@ -807,6 +817,18 @@ function HomePage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
+                {/* Honeypot field — hidden from real users via CSS + off-screen positioning
+                    and marked non-tabbable/non-autofillable. Real visitors never fill it in. */}
+                <input
+                  type="text"
+                  name="website"
+                  value={contactForm.website}
+                  onChange={(event) => setContactForm({ ...contactForm, website: event.target.value })}
+                  tabIndex="-1"
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", opacity: 0 }}
+                />
                 <div className="form-grid">
                   {[
                     ["name", "Your Name", "text"],

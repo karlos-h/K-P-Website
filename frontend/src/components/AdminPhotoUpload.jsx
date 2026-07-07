@@ -8,6 +8,18 @@ function slugify(text, date) {
   return date ? `${base}-${date}` : base;
 }
 
+// Strips path separators, traversal sequences, and anything outside a safe
+// filename charset so a crafted file.name (e.g. "../../secrets.jpg") can never
+// escape the event's folder or overwrite unrelated objects in the bucket.
+function sanitizeFileName(name) {
+  const lastDot = name.lastIndexOf(".");
+  const base = lastDot > 0 ? name.slice(0, lastDot) : name;
+  const ext = lastDot > 0 ? name.slice(lastDot + 1) : "";
+  const safeBase = base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "file";
+  const safeExt = ext.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return safeExt ? `${safeBase}.${safeExt}` : safeBase;
+}
+
 // ── Individual file row ───────────────────────────────────────────────────────
 
 function FileRow({ file, progress, error, isCover, onSetCover, publicUrl }) {
@@ -62,6 +74,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
   const [coverFile, setCoverFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
+  const [dbError, setDbError] = useState(null);
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
 
@@ -84,18 +97,24 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
     setPublicUrls({});
     setCoverFile(picked[0]?.name ?? null);
     setDone(false);
+    setDbError(null);
   };
 
   const upload = async () => {
     const effectiveSlug = defaultSlug ?? resolvedSlug;
     if ((!resolvedName && !defaultSlug) || files.length === 0) return;
     setUploading(true);
+    setDbError(null);
 
     const rows = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const path = `${effectiveSlug}/${file.name}`;
+      // Sanitize the filename before it ever touches the storage path — an
+      // unsanitized name (e.g. containing "../") could otherwise write outside
+      // this event's folder or overwrite unrelated objects in the bucket.
+      const safeName = sanitizeFileName(file.name);
+      const path = `${effectiveSlug}/${safeName}`;
 
       setProgress((p) => ({ ...p, [file.name]: 5 }));
 
@@ -131,6 +150,12 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
       const { error: insertError } = await supabase.from("media_assets").insert(rows);
       if (insertError) {
         console.error("Insert error:", insertError);
+        // Files are already in storage at this point, but without a media_assets
+        // row they won't show up anywhere on the site — surface this clearly
+        // instead of reporting a false "all done" success.
+        setDbError(
+          `Photos uploaded to storage, but saving the gallery entries failed: ${insertError.message}. Try uploading again — the files themselves are safe and will be overwritten.`
+        );
       }
     }
 
@@ -238,7 +263,8 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
         >
           {uploading ? "Uploading…" : `Upload ${files.length > 0 ? files.length + " photo" + (files.length !== 1 ? "s" : "") : ""}`}
         </button>
-        {done && <span style={rs.doneText}>✓ All done — photos are live on the site</span>}
+        {done && !dbError && <span style={rs.doneText}>✓ All done — photos are live on the site</span>}
+        {dbError && <span style={rs.errorText}>⚠ {dbError}</span>}
       </div>
     </div>
   );

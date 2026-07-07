@@ -1,0 +1,27 @@
+# Netlify deploy config for the Kava & Pyramids frontend (Vite + React SPA).
+# In the Netlify dashboard, you can leave "Base directory" blank if this file
+# lives at the repo root — Netlify reads it automatically.
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback — every route (e.g. /admin, /media-hub) must serve index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers applied to every response.
+# A strict Content-Security-Policy is intentionally omitted here because this
+# site embeds YouTube, SoundCloud, Behold (Instagram), and SociableKit
+# (TikTok) widgets — a tight CSP would break those without careful tuning.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"

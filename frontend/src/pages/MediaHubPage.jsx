@@ -17,12 +17,21 @@ const MOCK_ASSETS = [
 
 function EmailGate({ onUnlock }) {
   const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.includes("@")) { setError("Please enter a valid email address."); return; }
+
+    // Honeypot — bots fill hidden fields; real users never see this one.
+    if (website) {
+      localStorage.setItem(STORAGE_KEY, email);
+      onUnlock(email);
+      return;
+    }
+
     setLoading(true);
     try {
       await supabase.from("media_downloads").insert([{ email, accessed_at: new Date().toISOString() }]);
@@ -41,6 +50,16 @@ function EmailGate({ onUnlock }) {
         <h2>Event Photo Hub</h2>
         <p>Browse and download high-resolution photos from Kava &amp; Pyramids events. Enter your email to unlock the gallery — no password needed.</p>
         <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            name="website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            tabIndex="-1"
+            autoComplete="off"
+            aria-hidden="true"
+            style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", opacity: 0 }}
+          />
           <label>
             <span>Your Email</span>
             <input

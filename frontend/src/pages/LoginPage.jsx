@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { checkIsAdmin } from '../lib/admin'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -11,9 +12,13 @@ export default function LoginPage() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate('/admin', { replace: true })
-    })
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session && await checkIsAdmin()) {
+        navigate('/admin', { replace: true })
+      }
+    }
+    checkExistingSession()
   }, [navigate])
 
   const handleLogin = async (e) => {
@@ -26,9 +31,18 @@ export default function LoginPage() {
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
-      navigate('/admin')
+      return
     }
+
+    const isAdmin = await checkIsAdmin()
+    if (!isAdmin) {
+      await supabase.auth.signOut()
+      setError('This account does not have admin access.')
+      setLoading(false)
+      return
+    }
+
+    navigate('/admin')
   }
 
   return (
