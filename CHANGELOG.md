@@ -5,6 +5,19 @@ Format: newest version first.
 
 ---
 
+## v5.17.0 — Netlify launch: fallback Supabase config, deployed live
+
+### Added
+- **Fallback Supabase URL/anon key** in `frontend/src/lib/supabase.js` — the current hosting plan gates environment variables, so the site now falls back to hardcoded values when `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` aren't set at build time. This is safe: the Supabase anon key is a public, publishable key by design — it ships in the bundled JS either way and is meaningless without Row Level Security, which is what actually protects the data (see migrations 018–022). Env vars still take precedence when they are set, so a proper deployment can override these later
+- Verified live in preview: every Supabase-backed section (events, stats, trusted venues, mixes, videos, uploaded event photos) loads real data with zero environment variables configured
+
+### Notes
+- Site is now live at **kavapyramids.netlify.app** (renamed from the auto-generated `eclectic-unicorn-d97c00`)
+- Attempted to set env vars via the Netlify MCP connector first — the API calls reported success but never actually persisted, and the hosting plan separately turned out to gate this feature entirely. The fallback above sidesteps both problems
+- When a custom domain is purchased, remember to also update: `og:url`/`twitter` tags and the `SITE_URL`/`ALLOWED_ORIGINS` values referenced in `humanitix-sync`, plus the placeholder URLs in `robots.txt`, `sitemap.xml`, and `index.html`
+
+---
+
 ## v5.16.0 — Security hardening pass: real admin allowlist, RLS fixes, honeypots
 *Migrations 018–022 applied live via Supabase MCP*
 
