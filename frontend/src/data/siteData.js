@@ -1,5 +1,4 @@
-// Replace VIDEO_ID with a YouTube ID, or replace the full value with a Vimeo player URL.
-export const HIGHLIGHT_REEL_EMBED = "https://www.youtube-nocookie.com/embed/VIDEO_ID";
+export const HIGHLIGHT_REEL_EMBED = "https://www.youtube-nocookie.com/embed/TyerdB20EUQ";
 
 export const TIMELINE = [
   { year: "2018", title: "The Beginning", desc: "" },

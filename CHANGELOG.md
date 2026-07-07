@@ -5,6 +5,14 @@ Format: newest version first.
 
 ---
 
+## v5.15.0 — Highlight reel activated with scroll-triggered autoplay
+
+### Added
+- **Highlight reel embedded** in the "Watch the Movement" section — `HIGHLIGHT_REEL_EMBED` in `siteData.js` now points at a real YouTube video (`TyerdB20EUQ`) instead of the placeholder, replacing the "coming soon" state
+- **Scroll-triggered autoplay** — the reel plays (muted) automatically as it scrolls into view, whether scrolling down or back up, and pauses when it scrolls out, via an `IntersectionObserver` posting `playVideo`/`pauseVideo` commands to the YouTube iframe. Muted playback is required by every browser's autoplay policy when there's been no prior user interaction — visitors can unmute via the player's own controls. Skips entirely for users with reduced-motion preference set
+
+---
+
 ## v5.14.0 — Privacy Policy, social preview meta tags, favicon
 
 ### Added

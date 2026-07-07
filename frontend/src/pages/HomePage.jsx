@@ -142,6 +142,7 @@ function HomePage() {
   const [formSent, setFormSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const statsRef = useRef(null);
+  const highlightReelRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
   const { galleries } = useEventGalleries();
 
@@ -186,6 +187,23 @@ function HomePage() {
     if (statsRef.current) observer.observe(statsRef.current);
     return () => observer.disconnect();
   }, []);
+
+  // Auto-play the highlight reel (muted) as it scrolls into view, pause when it scrolls out.
+  useEffect(() => {
+    if (prefersReducedMotion) return undefined;
+    const postCommand = (func) => {
+      highlightReelRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func, args: [] }),
+        "*"
+      );
+    };
+    const observer = new IntersectionObserver(
+      ([entry]) => postCommand(entry.isIntersecting ? "playVideo" : "pauseVideo"),
+      { threshold: 0.5 },
+    );
+    if (highlightReelRef.current) observer.observe(highlightReelRef.current);
+    return () => observer.disconnect();
+  }, [prefersReducedMotion]);
 
   const scrollTo = (id) => {
     document.getElementById(id.toLowerCase().replaceAll(" ", "-"))?.scrollIntoView({ behavior: "smooth" });
@@ -320,7 +338,8 @@ function HomePage() {
                   </div>
                 ) : (
                   <iframe
-                    src={HIGHLIGHT_REEL_EMBED}
+                    ref={highlightReelRef}
+                    src={`${HIGHLIGHT_REEL_EMBED}${HIGHLIGHT_REEL_EMBED.includes("?") ? "&" : "?"}enablejsapi=1&mute=1&playsinline=1&rel=0`}
                     title="Kava & Pyramids highlight reel"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
