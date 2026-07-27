@@ -11,6 +11,11 @@ import { hoverLift, revealProps } from "../lib/motion";
 const YOUTUBE_CHANNEL_ID = "UCKZqaAXvlPHU6sUEgQ7wfrw";
 const UPLOADS_PLAYLIST_ID = `UU${YOUTUBE_CHANNEL_ID.slice(2)}`;
 const LATEST_COUNT = 5;
+// Show full sets only, not Shorts. Shorts are ≤3 min; the sets run 40+ min, so
+// a 3-minute floor separates them cleanly. We pull a wider recent window and
+// filter it down, since the uploads playlist interleaves Shorts and full sets.
+const MIN_DURATION_SECONDS = 180;
+const CANDIDATE_COUNT = 25;
 
 // Read-only, public-data API key. It is HTTP-referrer restricted to our own
 // domain in Google Cloud, so although it ships in the client bundle it only
@@ -47,9 +52,17 @@ function formatDate(value) {
   return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
 }
 
-// Map a YouTube Data API playlistItem into the card shape used below.
-function mapPlaylistItem(item) {
-  const videoId = item?.contentDetails?.videoId || item?.snippet?.resourceId?.videoId;
+// Parse an ISO 8601 duration (e.g. "PT44M57S", "PT1H8M50S") into seconds.
+function parseDurationSeconds(iso) {
+  const match = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso || "");
+  if (!match) return 0;
+  const [, h, m, s] = match;
+  return Number(h || 0) * 3600 + Number(m || 0) * 60 + Number(s || 0);
+}
+
+// Map a YouTube Data API videos.list item into the card shape used below.
+function mapVideo(item) {
+  const videoId = item?.id;
   if (!videoId) return null;
   const snippet = item.snippet || {};
   const thumbs = snippet.thumbnails || {};
@@ -64,20 +77,42 @@ function mapPlaylistItem(item) {
   };
 }
 
-// Latest uploads, live from YouTube. Returns [] when no key is configured so
-// the caller can fall through to the curated list.
+// The channel's latest full sets, live from YouTube. Returns [] when no key is
+// configured so the caller can fall through to the curated list. Two cheap
+// calls (1 quota unit each): the recent uploads, then their details so we can
+// drop Shorts by duration before taking the newest LATEST_COUNT.
 async function fetchLatestFromYouTube() {
   if (!YOUTUBE_API_KEY) return [];
-  const url =
+
+  const playlistUrl =
     "https://www.googleapis.com/youtube/v3/playlistItems" +
-    "?part=snippet,contentDetails" +
-    `&maxResults=${LATEST_COUNT}` +
+    "?part=contentDetails" +
+    `&maxResults=${CANDIDATE_COUNT}` +
     `&playlistId=${UPLOADS_PLAYLIST_ID}` +
     `&key=${YOUTUBE_API_KEY}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`YouTube API responded ${res.status}`);
-  const json = await res.json();
-  return (json.items || []).map(mapPlaylistItem).filter(Boolean);
+  const playlistRes = await fetch(playlistUrl);
+  if (!playlistRes.ok) throw new Error(`YouTube API responded ${playlistRes.status}`);
+  const playlistJson = await playlistRes.json();
+  const ids = (playlistJson.items || [])
+    .map((item) => item?.contentDetails?.videoId)
+    .filter(Boolean);
+  if (ids.length === 0) return [];
+
+  const detailsUrl =
+    "https://www.googleapis.com/youtube/v3/videos" +
+    "?part=snippet,contentDetails" +
+    `&id=${ids.join(",")}` +
+    `&key=${YOUTUBE_API_KEY}`;
+  const detailsRes = await fetch(detailsUrl);
+  if (!detailsRes.ok) throw new Error(`YouTube API responded ${detailsRes.status}`);
+  const detailsJson = await detailsRes.json();
+
+  const fullSets = (detailsJson.items || [])
+    .filter((item) => parseDurationSeconds(item?.contentDetails?.duration) > MIN_DURATION_SECONDS)
+    .map(mapVideo)
+    .filter(Boolean);
+
+  return sortByNewest(fullSets).slice(0, LATEST_COUNT);
 }
 
 function VideoCard({ video, delay, reduceMotion, isActive, onPlay }) {
