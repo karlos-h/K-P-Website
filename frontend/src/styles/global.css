@@ -598,12 +598,7 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 .lightbox__prev { top: 50%; left: 0.75rem; transform: translateY(-50%); }
 .lightbox__next { top: 50%; right: 0.75rem; transform: translateY(-50%); }
 
-/* ── YouTube Grid ── */
-.youtube-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-}
+/* ── Video Cards (used by the Watch carousel) ── */
 .video-card { display: flex; flex-direction: column; gap: 0; }
 .video-card__frame {
   position: relative;
@@ -666,6 +661,54 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 .video-card__placeholder p { margin: 0; font-size: 0.8rem; color: var(--muted); }
 .video-card__body { padding: 1.1rem 0.25rem 0; }
 .video-card__body h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+.video-card__date { margin: 0 0 0.5rem; font-size: 0.75rem; color: var(--muted); }
+
+/* ── Watch Carousel ── */
+/* Netflix-row style horizontal strip. --watch-card-w drives both the card
+   width and the arrows' vertical anchor (centred on the 16:9 frame). */
+.watch-carousel { position: relative; --watch-card-w: clamp(260px, 78vw, 340px); }
+.watch-carousel__track {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 0.25rem;
+  padding: 0.25rem 0.25rem 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 168, 76, 0.5) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.watch-carousel__track::-webkit-scrollbar { height: 6px; }
+.watch-carousel__track::-webkit-scrollbar-thumb { background: rgba(201, 168, 76, 0.4); border-radius: 3px; }
+.watch-carousel__track::-webkit-scrollbar-track { background: transparent; }
+.watch-carousel__track > .video-card {
+  flex: 0 0 var(--watch-card-w);
+  scroll-snap-align: start;
+}
+.watch-carousel__arrow {
+  position: absolute;
+  top: calc(var(--watch-card-w) * 9 / 16 / 2 + 0.25rem);
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: rgba(12, 12, 12, 0.72);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.25s, border-color 0.25s, transform 0.2s;
+}
+.watch-carousel__arrow:hover { background: var(--gold); color: #000; border-color: var(--gold); transform: translateY(-50%) scale(1.06); }
+.watch-carousel__arrow--prev { left: -0.75rem; }
+.watch-carousel__arrow--next { right: -0.75rem; }
+@media (max-width: 640px) {
+  .watch-carousel__arrow { display: none; }
+}
 
 /* ── Social Feed Section ── */
 .social-feed-section { background: var(--panel); }
@@ -767,7 +810,6 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 
 @media (max-width: 640px) {
   .social-feed__placeholder-grid { grid-template-columns: repeat(3, 1fr); }
-  .youtube-grid { grid-template-columns: 1fr; }
   .tiktok-feed-frame .sk-posts-grid { grid-template-columns: repeat(3, 1fr) !important; }
   .platform-feed__header { justify-content: center; text-align: center; }
 }

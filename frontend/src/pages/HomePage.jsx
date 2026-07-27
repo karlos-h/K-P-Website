@@ -20,7 +20,7 @@ import {
 import MediaGallery from "../components/MediaGallery";
 import EventCarousel from "../components/EventCarousel";
 import { useEventGalleries } from "../hooks/useEventGalleries";
-import YouTubeGrid from "../components/YouTubeGrid";
+import WatchCarousel from "../components/WatchCarousel";
 import SocialFeed from "../components/SocialFeed";
 import TikTokFeed from "../components/TikTokFeed";
 import {
@@ -38,7 +38,7 @@ import { revealProps, sceneProps } from "../lib/motion";
 
 const NAV_LINKS = ["Home", "About", "Events", "Listen", "Watch", "Gallery", "Press Kit", "Contact"];
 const NAV_EXTERNAL = [
-  { label: "Media Hub", href: "/media-hub" },
+  { label: "MEDIA HUB", href: "/media-hub" },
   { label: "EPK", href: "/epk" },
 ];
 
@@ -361,7 +361,7 @@ function HomePage() {
                 <SectionLabel>Watch the Movement</SectionLabel>
                 <h2>See Why Crowds Keep Coming Back</h2>
                 <div className="movement__beats">
-                  <span>High-energy crowds.</span>
+                  <span>High energy crowds.</span>
                   <span>Packed dancefloors.</span>
                   <span>Festival appearances.</span>
                   <span>International performances.</span>
@@ -449,18 +449,17 @@ function HomePage() {
                 <SectionLabel>Our Story</SectionLabel>
                 <h2>Two friends.<br /><span>One movement.</span></h2>
                 <p>
-                  They met in high school in 2018. Five years later, they found themselves in
-                  Christchurch, both studying, both restless. DJing started as something to do.
-                  It became something to build.
+                  They found themselves in Christchurch, both studying, both restless. 
+                  DJing started as something to do. It became something to build.
                 </p>
                 <p>
-                  Fijian and Egyptian roots collide in a city at the bottom of the world,
+                  Fijian and Egyptian roots collided in a city at the bottom of the world,
                   creating a sound and presence that never fits neatly into one box.
                 </p>
                 <p>
-                  That start in Christchurch high school hallways now plays out most weekends —
-                  Kong Bar on Saturdays, Original Sin on Fridays, peak-time slots either way. In
-                  2025 that reach grew to Fiji. In 2026, Australia.
+                  What started as a hobby quickly grew into a new sound for the duo and shared it with 
+                  the city of Christchurch, now they play out most weekends on the strip of Christchurch like
+                  Kong Bar and Original Sin, In 2025 that reach grew to Fiji and in 2026, Australia.
                 </p>
                 <button className="button button--outline" onClick={() => scrollTo("Contact")}>
                   Book a Show
@@ -571,7 +570,7 @@ function HomePage() {
             <SectionHeading
               label="Listen"
               title="The Sound of Kava & Pyramids"
-              copy="Open-format sets built for club rooms, festival fields, and everything between."
+              copy="Open format sets built for club rooms, festival fields, and everything between."
               align="center"
             />
             <div className="music__grid">
@@ -625,7 +624,7 @@ function HomePage() {
               title="See the Sets"
               copy="Full sets, event recaps, and behind-the-scenes from Kava & Pyramids."
             />
-            <YouTubeGrid />
+            <WatchCarousel />
             <motion.div
               style={{ textAlign: "center", marginTop: "3rem" }}
               {...revealProps(0, prefersReducedMotion)}
@@ -748,15 +747,14 @@ function HomePage() {
                 <SectionLabel>Press Kit</SectionLabel>
                 <h2>For Promoters &amp; Media</h2>
                 <p>
-                  Kava &amp; Pyramids formed in 2023, building on a friendship that started in
-                  Christchurch high school in 2018. They stepped onto the Christchurch scene in
-                  2024, and by 2025 were holding weekly residencies at Original Sin and Kong Bar
-                  alongside international shows in Fiji.
+                  Kava &amp; Pyramids formed in 2023, building on a friendship that started in 2018. 
+                  They stepped onto the Christchurch scene in 2024, and by 2025 were holding weekly 
+                  residencies at Original Sin and Kong Bar alongside international shows in Fiji.
                 </p>
                 <p>
-                  Known for high-energy, open-format sets across Hip-Hop, R&amp;B, Pop, Afrobeats,
-                  and Global Sounds — with an ear on current club sounds like Baile Funk, Miami
-                  Bass, and Jersey Club — they read the room and keep it moving.
+                  Known for high energy, open-format sets across Hip-Hop, R&amp;B, Pop, Afrobeats,
+                  and Global Sounds with an ear on current club sounds like Baile Funk, Miami
+                  Bass, and Jersey Club, they read the room and keep it moving.
                 </p>
                 <div className="button-row">
                   <a className="button button--gold" href="/epk">
@@ -770,7 +768,7 @@ function HomePage() {
               <motion.div className="press__details" {...revealProps(0.12, prefersReducedMotion)}>
                 <SectionLabel>Known For</SectionLabel>
                 {[
-                  "High-energy crowd engagement",
+                  "High energy crowd engagement",
                   "Seamless mixing and transitions",
                   "Peak-time set experience",
                   "University and festival shows",
