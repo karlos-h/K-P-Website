@@ -4,9 +4,22 @@ import { ChevronLeft, ChevronRight, Play, Youtube } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { hoverLift, revealProps } from "../lib/motion";
 
-// Fallback placeholder videos — shown until the `videos` table has real rows.
-// Replace via the DB: insert into videos (title, genre, youtube_id, published_date, sort_order).
-// To get a video ID: open the video on YouTube, copy the part after "?v=" in the URL.
+// K&P YouTube channel. A channel's "uploads" playlist is its channel ID with
+// the leading "UC" swapped for "UU" — a stable YouTube convention that lets us
+// pull the latest uploads with a single cheap playlistItems call (1 quota unit)
+// instead of the expensive search endpoint (100 units).
+const YOUTUBE_CHANNEL_ID = "UCKZqaAXvlPHU6sUEgQ7wfrw";
+const UPLOADS_PLAYLIST_ID = `UU${YOUTUBE_CHANNEL_ID.slice(2)}`;
+const LATEST_COUNT = 5;
+
+// Read-only, public-data API key. It is HTTP-referrer restricted to our own
+// domain in Google Cloud, so although it ships in the client bundle it only
+// works when called from this site. Supplied via VITE_YOUTUBE_API_KEY (set in
+// Netlify env). When absent, the carousel falls back to curated Supabase rows.
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+// Fallback placeholders — shown only if both the YouTube feed and the curated
+// `videos` table are unavailable, so the section never renders empty/broken.
 const PLACEHOLDER_VIDEOS = [
   { id: "placeholder-1", title: "Live Set — Original Sin", genre: "Club Night", youtube_id: null, published_date: null },
   { id: "placeholder-2", title: "Fiji Tour 2025", genre: "International", youtube_id: null, published_date: null },
@@ -14,9 +27,8 @@ const PLACEHOLDER_VIDEOS = [
 ];
 
 // Newest → oldest by published_date. Undated videos sort last (they fall back to
-// sort_order for a stable, hand-orderable position). Works whether or not the
-// published_date column exists yet, so it degrades gracefully before the
-// migration is applied — missing dates simply become undated.
+// sort_order for a stable, hand-orderable position). Works whether the date is
+// an ISO datetime (YouTube) or a plain date (Supabase column).
 function sortByNewest(videos) {
   return [...videos].sort((a, b) => {
     const timeA = a.published_date ? new Date(a.published_date).getTime() : NaN;
@@ -35,9 +47,44 @@ function formatDate(value) {
   return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
 }
 
+// Map a YouTube Data API playlistItem into the card shape used below.
+function mapPlaylistItem(item) {
+  const videoId = item?.contentDetails?.videoId || item?.snippet?.resourceId?.videoId;
+  if (!videoId) return null;
+  const snippet = item.snippet || {};
+  const thumbs = snippet.thumbnails || {};
+  const thumbnail = (thumbs.maxres || thumbs.standard || thumbs.high || thumbs.medium || {}).url || null;
+  return {
+    id: videoId,
+    title: snippet.title || "Untitled",
+    genre: null, // YouTube gives no genre; the date label carries context instead
+    youtube_id: videoId,
+    published_date: snippet.publishedAt || null,
+    thumbnail,
+  };
+}
+
+// Latest uploads, live from YouTube. Returns [] when no key is configured so
+// the caller can fall through to the curated list.
+async function fetchLatestFromYouTube() {
+  if (!YOUTUBE_API_KEY) return [];
+  const url =
+    "https://www.googleapis.com/youtube/v3/playlistItems" +
+    "?part=snippet,contentDetails" +
+    `&maxResults=${LATEST_COUNT}` +
+    `&playlistId=${UPLOADS_PLAYLIST_ID}` +
+    `&key=${YOUTUBE_API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`YouTube API responded ${res.status}`);
+  const json = await res.json();
+  return (json.items || []).map(mapPlaylistItem).filter(Boolean);
+}
+
 function VideoCard({ video, delay, reduceMotion, isActive, onPlay }) {
   const hasVideo = Boolean(video.youtube_id);
   const dateLabel = formatDate(video.published_date);
+  const thumb =
+    video.thumbnail || (hasVideo ? `https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg` : null);
 
   return (
     <motion.article className="video-card" {...revealProps(delay, reduceMotion)}>
@@ -63,11 +110,7 @@ function VideoCard({ video, delay, reduceMotion, isActive, onPlay }) {
             role={hasVideo ? "button" : undefined}
             tabIndex={hasVideo ? 0 : undefined}
             aria-label={hasVideo ? `Play ${video.title}` : undefined}
-            style={
-              hasVideo
-                ? { backgroundImage: `url(https://img.youtube.com/vi/${video.youtube_id}/maxresdefault.jpg)` }
-                : undefined
-            }
+            style={thumb ? { backgroundImage: `url(${thumb})` } : undefined}
           >
             {hasVideo ? (
               <span className="play-button"><Play fill="currentColor" size={28} /></span>
@@ -81,7 +124,7 @@ function VideoCard({ video, delay, reduceMotion, isActive, onPlay }) {
         )}
       </motion.div>
       <div className="video-card__body">
-        <p className="section-label" style={{ marginBottom: "0.35rem" }}>{video.genre}</p>
+        {video.genre && <p className="section-label" style={{ marginBottom: "0.35rem" }}>{video.genre}</p>}
         <h3>{video.title}</h3>
         {dateLabel && <p className="video-card__date">{dateLabel}</p>}
         {hasVideo && (
@@ -106,16 +149,40 @@ export default function WatchCarousel() {
   const trackRef = useRef(null);
 
   useEffect(() => {
-    if (!supabase) return;
-    const fetchVideos = async () => {
-      const { data } = await supabase.from("videos").select("*");
-      if (data && data.length > 0) setVideos(data);
+    let cancelled = false;
+
+    const load = async () => {
+      // 1) Preferred: the channel's latest uploads, live from YouTube.
+      try {
+        const latest = await fetchLatestFromYouTube();
+        if (!cancelled && latest.length > 0) {
+          setVideos(latest);
+          return;
+        }
+      } catch (error) {
+        console.warn("YouTube feed unavailable — falling back to curated videos.", error);
+      }
+
+      // 2) Fallback: curated rows in the Supabase `videos` table.
+      if (supabase) {
+        const { data } = await supabase.from("videos").select("*");
+        if (!cancelled && data && data.length > 0) {
+          setVideos(data);
+          return;
+        }
+      }
+
+      // 3) Otherwise keep the placeholder set already in state.
     };
-    fetchVideos();
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Newest first. Sorted here (not relying on DB/array order) so re-ordering
-  // rows or adding a video later can't silently break the intended order.
+  // Newest first. Sorted here (not relying on API/DB order) so the intended
+  // order holds regardless of how the source returns rows.
   const sortedVideos = useMemo(() => sortByNewest(videos), [videos]);
 
   const scrollByPage = (direction) => {
