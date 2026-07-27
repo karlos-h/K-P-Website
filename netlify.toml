@@ -7,6 +7,16 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  # These VITE_ values are PUBLIC client-side keys — Vite inlines them into the
+  # browser bundle by design, so they necessarily appear in the build output.
+  # They are safe there: the YouTube key is read-only and HTTP-referrer
+  # restricted to our domain, and the Supabase anon key is a publishable key
+  # protected by Row Level Security (see supabase/migrations 018-022). Netlify's
+  # secret scanner flags any env value found in output, so we opt these specific
+  # public keys out — this does NOT disable scanning for anything else.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_YOUTUBE_API_KEY,VITE_SUPABASE_ANON_KEY"
+
 # SPA fallback — every route (e.g. /admin, /media-hub) must serve index.html
 [[redirects]]
   from = "/*"
