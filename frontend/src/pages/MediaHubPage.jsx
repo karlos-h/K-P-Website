@@ -48,7 +48,8 @@ function EmailGate({ onUnlock }) {
       <div className="email-gate__card">
         <span className="email-gate__icon"><Image size={32} /></span>
         <h2>Event Photo Hub</h2>
-        <p>Browse and download high-resolution photos from Kava &amp; Pyramids events. Enter your email to unlock the gallery — no password needed.</p>
+        <p>Browse and download photos from Kava &amp; Pyramids events. 
+          Enter your email to unlock the gallery, no password needed.</p>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
