@@ -319,7 +319,7 @@ function HomePage() {
           <h1>
             Kava <span>&amp; Pyramids</span>
           </h1>
-          <p className="hero__tagline">CHCH to the World</p>
+          <p className="hero__tagline">to the World</p>
           <div className="hero__actions">
             <button className="button button--outline" onClick={() => scrollTo("Events")}>
               View Events
@@ -656,7 +656,7 @@ function HomePage() {
               <div>
                 <p className="section-label">Photo Hub</p>
                 <h3>Download Event Photos</h3>
-                <p>Browse and download photos from our events.</p>
+                <p>Browse and download photos from our latest events.</p>
               </div>
               <a className="button button--gold" href="/media-hub">
                 Open Photo Hub <ArrowRight size={16} />

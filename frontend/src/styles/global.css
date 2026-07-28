@@ -372,7 +372,27 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   .hero__tagline { letter-spacing: .14em; }
   .hero__actions .button { width: min(280px, 100%); }
   .trusted__grid, .music__grid, .why-book__grid, .heritage__grid { grid-template-columns: 1fr; }
+  .trusted__grid {
+    max-height: 25rem;
+    overflow-y: auto;
+    padding-right: .5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) #111;
+  }
+  .trusted__grid::-webkit-scrollbar { width: 4px; }
+  .trusted__grid::-webkit-scrollbar-track { background: #111; }
+  .trusted__grid::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
   .trusted-card:last-child { grid-column: auto; }
+  .why-book__grid {
+    max-height: 34rem;
+    overflow-y: auto;
+    padding-right: .5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) #111;
+  }
+  .why-book__grid::-webkit-scrollbar { width: 4px; }
+  .why-book__grid::-webkit-scrollbar-track { background: #111; }
+  .why-book__grid::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
   .featured-event__content { align-items: flex-start; flex-direction: column; }
   .date-block { width: 100%; }
   .date-block span { flex: 1; min-width: 0; }
