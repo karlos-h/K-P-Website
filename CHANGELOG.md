@@ -5,6 +5,23 @@ Format: newest version first.
 
 ---
 
+## v5.21.0 — Media Hub gate skip + pill redesign, nav typography, honest photo counts
+
+### Added
+- **"Already signed up? Skip →" link on the Media Hub email gate.** Returning visitors who already handed over their email (or just don't want to) can bypass the gate without creating a duplicate signup. A skip writes nothing to Supabase — there's no email to log — and persists via a new `kp_media_hub_skipped` localStorage key with the same durability as a real submission, so the gate stays gone on future visits. Download tracking now only includes the `email` column when a real address exists, so skipped visitors log downloads with a null email instead of a placeholder string
+
+### Changed
+- **Email gate redesigned as a single-row pill bar.** The separate "Your Email" label is gone; a larger 21px mail icon, a bigger 1rem input, and the "Unlock Gallery" button now share one rounded bar with a gold focus ring. Honeypot, validation, loading state, and error handling are unchanged (errors render below the bar). Under 480px the button wraps to its own full-width row. The already-live mailing-list signup logic was not touched
+- **"MEDIA HUB" and "EPK" nav links now match the other nav items.** `.nav__external-link` previously used `0.82rem` muted text with no letter-spacing or uppercase transform, so the two external links looked visibly different from their siblings. They now use the exact properties of the scroll-to nav buttons (`.67rem`, `.14em` letter-spacing, uppercase, `#aaa7a0`, gold hover), on desktop and in the ≤900px dropdown (which now applies its `1rem` padding / left alignment to them too)
+
+### Removed
+- **"N photos — click to browse" line on Media Hub event cards.** The count only reflected photos hosted natively on the site, not the full external gallery it implicitly described, so it was misleading. The card header remains clickable and still opens the full-screen grid; the orphaned `.event-carousel__count` rule went with it
+
+### Fixed
+- **Admin photo upload no longer reports "✓ All done — photos are live" when some uploads failed.** The done-state now cross-checks the per-file error map: full success keeps the old message, partial failure shows "N of M photos failed to upload — see errors above" with the success count, and a database error still takes priority
+
+---
+
 ## v5.20.1 — Backfill order dates for unsubscribed contacts
 
 ### Fixed
