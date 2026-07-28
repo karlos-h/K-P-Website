@@ -72,7 +72,7 @@ function ContactRow({ contact, isEditing, isDeleting, onEdit, onDeleteClick, onC
             {contact.subscribed ? "Yes" : "No"}
           </span>
         </td>
-        <td style={t.td}>{contact.source}</td>
+        <td style={t.td}>{contact.source === "media_hub" ? "Media Hub" : contact.source}</td>
         <td style={{ ...t.td, whiteSpace: "nowrap" }}>
           {!isEditing && !isDeleting && (
             <>

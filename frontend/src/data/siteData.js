@@ -35,7 +35,6 @@ export const EDGE_GENRES = ["Baile Funk", "Miami Bass", "Jersey Club"];
 // Current weekly residencies — a concrete, named proof point (not a vague "the scene" claim).
 export const RESIDENCIES = [
   { venue: "Kong Bar", night: "Saturdays" },
-  { venue: "Original Sin", night: "Fridays" },
 ];
 
 export const SOCIAL_LINKS = [
