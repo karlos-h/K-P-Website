@@ -5,6 +5,33 @@ Format: newest version first.
 
 ---
 
+## v5.19.0 — TikTok feed styling fix, live YouTube Watch feed, events scroll, Netlify build fix
+
+### Fixed
+- **TikTok feed (SociableKit widget) restyled to match the site.** The widget was rendering in Carousel mode inside a hardcoded white card (`#fff` background, `2px #e5e5e5` border, `12px` radius, `24px` padding) — clashing with the black/gold theme and showing a single scrolling row instead of a grid. Switched the widget to **Grid mode** on the SociableKit dashboard (embed `25695197`), which restored the `.sk-posts-grid` / `.sk-post-item` DOM the existing overrides target, then in `frontend/src/styles/global.css` stripped the outer `.sk-tiktok-feed` card to transparent/borderless/flush so the feed sits on the dark section and matches the borderless Instagram (Behold) grid above it
+- **Worked around the widget forcing a near-white tile border.** The widget's own JS applies `border-color: #f5f5f5` to each `.sk-post-item` in a way no author CSS can override — verified against the live DOM that not even an inline `!important` wins (border-width, radius, background, and outline all yield to our CSS, but `border-color` does not). Zeroed the widget border out (`border: 0`) and now draw our own thin gold line with `box-shadow: inset 0 0 0 1px var(--line)`, which the widget doesn't touch; hover shifts the inset shadow to gold and keeps the `translateY` lift
+- **Netlify build failure from secret scanning** (`netlify.toml`). Netlify's secret scanner fails the build when an env-var value appears in build output, and `VITE_` vars are inlined into the client bundle by design. Opted just the two intentionally-public keys out via `SECRETS_SCAN_OMIT_KEYS` (the YouTube key is read-only + HTTP-referrer restricted; the Supabase anon key is a publishable key guarded by RLS) — scanning stays on for everything else
+
+### Added
+- **Watch carousel now feeds from the channel's latest YouTube uploads live** via the YouTube Data API (`playlistItems` on the uploads playlist), with a resilient fallback chain so the section is never empty or broken: (1) latest uploads from YouTube when `VITE_YOUTUBE_API_KEY` is set, (2) curated rows in the Supabase `videos` table, (3) built-in placeholders. The key is read-only and HTTP-referrer-restricted, supplied via env and never committed; documented in `frontend/.env.example`
+
+### Changed
+- **Shorts excluded from the Watch feed — full sets only.** Pull a wider recent window from the uploads playlist, look up each video's duration via `videos.list`, and keep only items longer than 3 minutes before taking the newest 5 (two quota units per load)
+- **Events list is now an always-on scrollable container.** Previously only the "past" tab scrolled; both tabs now use `.events__list--scrollable`, with a `27rem` max-height cap on mobile (`HomePage.jsx`, `global.css`)
+- **Copy polish** on the Events and Watch section headings (`HomePage.jsx`) and the Event Photo Hub email-gate blurb (`MediaHubPage.jsx`)
+
+---
+
+## v5.18.0 — Watch section becomes a newest-first video carousel
+
+### Changed
+- **Replaced the static Watch / "See the Sets" grid with a horizontally scrollable, multi-card video carousel** (`WatchCarousel`), retiring `YouTubeGrid.jsx` and its dead CSS. Cards play inline via YouTube embed with only one video active at a time. Videos sort newest → oldest by `published_date` (with `sort_order` as a stable tiebreak; undated videos sort last), reading the existing Supabase `videos` table with a placeholder fallback. Desktop gets prev/next arrows anchored on the 16:9 frame; mobile uses native touch-swipe/scroll with the arrows hidden. Thumbnails are keyboard-accessible (Enter/Space to play). The "Watch the Movement" highlight reel is unchanged
+
+### Added
+- **Migration 023** — nullable `videos.published_date` to drive the carousel sort
+
+---
+
 ## v5.17.0 — Netlify launch: fallback Supabase config, deployed live
 
 ### Added
