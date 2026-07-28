@@ -275,6 +275,25 @@ Deno.serve(async (req) => {
 
         // Existing contact: never resubscribe or overwrite someone who has unsubscribed.
         if (!existing.subscribed) {
+          // Never resubscribe an unsubscribed contact or rewrite their
+          // details — but DO backfill the order metadata. order_created_at
+          // is neutral historical fact, not a consent field, and skipping
+          // it entirely (as this branch used to) left every unsubscribed
+          // contact sorting by the sync timestamp forever: 106 of 192 rows
+          // after the first v13 sync. subscribed/name/source are pointedly
+          // not touched here.
+          if (orderCreatedAt || orderId) {
+            const { error: backfillError } = await db
+              .from("mailing_list")
+              .update({
+                ...(orderCreatedAt ? { order_created_at: orderCreatedAt } : {}),
+                ...(orderId ? { order_id: orderId } : {}),
+              })
+              .eq("id", existing.id);
+            if (backfillError) {
+              summary.errors.push(`Order-date backfill failed for ${email}: ${backfillError.message}`);
+            }
+          }
           summary.skipped_unsubscribed += 1;
           continue;
         }
