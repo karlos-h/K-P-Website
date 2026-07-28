@@ -23,6 +23,11 @@ const PAGE_SIZE = 100;
 // add production URLs without redeploying code.
 function buildAllowedOrigins(): Set<string> {
   const origins = new Set([
+    // Live site. The apex/www custom domain is not currently registered
+    // (kavapyramids.com is NXDOMAIN as of 2026-07-28) — the site is served
+    // from the Netlify subdomain. Both are listed so that attaching the
+    // custom domain later doesn't break this function.
+    "https://kavapyramids.netlify.app",
     "https://kavapyramids.com",
     "https://www.kavapyramids.com",
     "http://localhost:5173",
@@ -43,11 +48,32 @@ function buildAllowedOrigins(): Set<string> {
   return origins;
 }
 
+// Netlify branch deploys and deploy previews get generated subdomains
+// (deploy-preview-12--kavapyramids.netlify.app, develop--kavapyramids…).
+// Match those too, so testing the admin dashboard on a preview build
+// doesn't silently fail CORS the way the production origin just did.
+const NETLIFY_PREVIEW_RE = /^https:\/\/[a-z0-9][a-z0-9-]*--kavapyramids\.netlify\.app$/;
+
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return false;
+  return buildAllowedOrigins().has(origin) || NETLIFY_PREVIEW_RE.test(origin);
+}
+
 function corsHeaders(origin: string | null) {
-  const allowed = buildAllowedOrigins();
-  const allowOrigin = origin && allowed.has(origin) ? origin : "";
+  const allowOrigin = isOriginAllowed(origin) ? origin! : "";
+  if (origin && !allowOrigin) {
+    // Previously this failed completely silently: the browser blocked the
+    // response for want of an Access-Control-Allow-Origin header, the POST
+    // was never sent, and the only trace was a lone OPTIONS 200 in the logs.
+    // Leave a breadcrumb so the next origin mismatch is one log line away.
+    console.warn(
+      `humanitix-sync: rejected disallowed Origin "${origin}". ` +
+      `Add it via the SITE_URL or ALLOWED_ORIGINS secret.`,
+    );
+  }
   return {
     ...(allowOrigin ? { "Access-Control-Allow-Origin": allowOrigin, "Vary": "Origin" } : {}),
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   };
 }
@@ -57,6 +83,21 @@ function jsonResponse(body: unknown, status = 200, origin: string | null = null)
     status,
     headers: { ...corsHeaders(origin), "Content-Type": "application/json" },
   });
+}
+
+// The Humanitix order object carries ISO-8601 `completedAt`, `createdAt`,
+// `updatedAt` and `incompleteAt` (OpenAPI spec at
+// https://api.humanitix.com/v1/documentation/json). We want the moment the
+// attendee actually bought their ticket, so prefer completedAt and fall
+// back to createdAt — completedAt is null on abandoned/incomplete orders.
+// Anything unparseable yields null rather than a bogus date.
+function orderTimestamp(order: any): string | null {
+  for (const value of [order?.completedAt, order?.createdAt]) {
+    if (typeof value !== "string" || !value) continue;
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+  }
+  return null;
 }
 
 async function fetchAllOrders(eventId: string, apiKey: string) {
@@ -154,8 +195,16 @@ Deno.serve(async (req) => {
       inserted: 0,
       updated: 0,
       skipped_unsubscribed: 0,
+      order_dates_captured: 0,
       errors: [] as string[],
     };
+
+    // One-time, non-PII shape check. The order timestamp field names are
+    // taken from Humanitix's published OpenAPI spec; this logs the actual
+    // keys of the first order seen (names only — never values, which are
+    // attendee PII) plus the parsed timestamp, so the live response can be
+    // confirmed against the spec from the edge logs after a real sync.
+    let shapeLogged = false;
 
     for (const event of events ?? []) {
       let orders: any[] = [];
@@ -169,10 +218,22 @@ Deno.serve(async (req) => {
       summary.attendees_fetched += orders.length;
 
       for (const order of orders) {
+        if (!shapeLogged) {
+          shapeLogged = true;
+          console.log(
+            "humanitix-sync: order field names =",
+            JSON.stringify(Object.keys(order ?? {})),
+            "| parsed order timestamp =",
+            orderTimestamp(order),
+          );
+        }
+
         const email = (order.email ?? "").trim().toLowerCase();
         const firstName = (order.firstName ?? "").trim();
         const lastName = (order.lastName ?? "").trim();
         const orderId = order._id ?? null;
+        const orderCreatedAt = orderTimestamp(order);
+        if (orderCreatedAt) summary.order_dates_captured += 1;
 
         if (!email || !firstName || !lastName) {
           summary.errors.push(`Order ${order._id ?? "unknown"} on event ${event.title} is missing name/email — skipped.`);
@@ -202,6 +263,7 @@ Deno.serve(async (req) => {
             event_title: event.title,
             subscribed: wantsList,
             order_id: orderId,
+            order_created_at: orderCreatedAt,
           });
           if (insertError) {
             summary.errors.push(`Insert failed for ${email}: ${insertError.message}`);
@@ -225,6 +287,10 @@ Deno.serve(async (req) => {
             source: "humanitix",
             event_title: event.title,
             order_id: orderId,
+            // Only write when we actually parsed one, so a re-sync can
+            // backfill existing rows but never clobbers a known date with
+            // null (e.g. if a later order for the same email lacks one).
+            ...(orderCreatedAt ? { order_created_at: orderCreatedAt } : {}),
           })
           .eq("id", existing.id);
 

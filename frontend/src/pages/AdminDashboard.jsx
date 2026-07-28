@@ -29,9 +29,18 @@ export default function AdminDashboard() {
         .select('*')
         .order('created_at', { ascending: false })
       if (!error) setEnquiries(data)
-      const { data: evData } = await supabase.from('events').select('*').order('created_at', { ascending: false })
+      // Order by the event's actual date (not row insertion order) so the
+      // "Link to existing event" / "Linked Event" dropdowns in the Photo
+      // Upload and Gallery tabs list the most recent event first. Undated
+      // events sort to the bottom rather than the top. AdminEventsManager
+      // recomputes its own display order locally, so it is unaffected.
+      const { data: evData } = await supabase.from('events').select('*').order('sort_date', { ascending: false, nullsFirst: false })
       if (evData) setEvents(evData)
-      const { data: mlData } = await supabase.from('mailing_list').select('*').order('created_at', { ascending: false })
+      // effective_signup_at is a generated column: coalesce(order_created_at,
+      // created_at). Humanitix contacts sort by their real ticket-purchase
+      // date; manual and media_hub contacts, which have no order, fall back
+      // to when the row was created. (Migration 027.)
+      const { data: mlData } = await supabase.from('mailing_list').select('*').order('effective_signup_at', { ascending: false, nullsFirst: false })
       if (mlData) setContacts(mlData)
       const { data: venueData } = await supabase.from('trusted_venues').select('*').order('sort_order')
       if (venueData) setVenues(venueData)

@@ -656,7 +656,7 @@ function HomePage() {
               <div>
                 <p className="section-label">Photo Hub</p>
                 <h3>Download Event Photos</h3>
-                <p>Promoters and media — browse and download high-res photos from our events.</p>
+                <p>Browse and download photos from our events.</p>
               </div>
               <a className="button button--gold" href="/media-hub">
                 Open Photo Hub <ArrowRight size={16} />

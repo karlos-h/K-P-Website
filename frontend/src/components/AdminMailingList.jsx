@@ -3,6 +3,29 @@ import { supabase } from "../lib/supabase";
 
 const BLANK = { first_name: "", last_name: "", email: "", event_title: "", subscribed: true, notes: "" };
 
+// Media Hub gallery signups (source = 'media_hub') only supply an email, so
+// first_name/last_name are legitimately null — see migration 024. Render a
+// dash rather than a blank cell, and give the "delete?" prompt something
+// human to refer to by falling back to the email's local part.
+const DASH = "—";
+const nameCell = (v) => (v && String(v).trim()) || DASH;
+
+// Sort key for "most recent members first". Mirrors the effective_signup_at
+// generated column from migration 027 — Humanitix contacts carry the real
+// ticket-purchase date, everyone else falls back to row creation time. Kept
+// in JS as well because this list is re-sorted client-side after filtering,
+// and because rows refreshed after an edit may not round-trip the generated
+// column.
+function signupAt(contact) {
+  return contact.effective_signup_at || contact.order_created_at || contact.created_at || "";
+}
+
+function displayName(contact) {
+  const full = [contact.first_name, contact.last_name].filter(Boolean).join(" ").trim();
+  if (full) return full;
+  return contact.email ? contact.email.split("@")[0] : "this contact";
+}
+
 function toCsv(rows) {
   const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const header = "first_name,last_name,email";
@@ -38,8 +61,8 @@ function ContactRow({ contact, isEditing, isDeleting, onEdit, onDeleteClick, onC
         {/* Order ID column — not currently useful, commented out for now. May revisit later.
         <td style={t.td}>{contact.order_id || "—"}</td>
         */}
-        <td style={{ ...t.td, color: "#f0ece3", fontWeight: 500 }}>{contact.first_name}</td>
-        <td style={{ ...t.td, color: "#f0ece3", fontWeight: 500 }}>{contact.last_name}</td>
+        <td style={{ ...t.td, color: "#f0ece3", fontWeight: 500 }}>{nameCell(contact.first_name)}</td>
+        <td style={{ ...t.td, color: "#f0ece3", fontWeight: 500 }}>{nameCell(contact.last_name)}</td>
         <td style={t.td}>
           <a href={`mailto:${contact.email}`} style={t.emailLink}>{contact.email}</a>
         </td>
@@ -78,7 +101,7 @@ function ContactRow({ contact, isEditing, isDeleting, onEdit, onDeleteClick, onC
           <td colSpan={7} style={{ padding: "1rem 1.25rem", background: "#0d0808", borderBottom: "2px solid rgba(224,92,92,0.2)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", flexWrap: "wrap" }}>
               <span style={{ fontSize: 14, color: "#e07070" }}>
-                Delete <strong style={{ color: "#f0ece3" }}>{contact.first_name} {contact.last_name}</strong>?
+                Delete <strong style={{ color: "#f0ece3" }}>{displayName(contact)}</strong>?
                 Consider unsubscribing instead (edit → uncheck Subscribed) to keep the record — deleting removes it permanently.
               </span>
               <button style={{ ...t.saveBtn, background: "#8b1a1a" }} onClick={() => onConfirmDelete(contact)}>
@@ -204,7 +227,7 @@ export default function AdminMailingList({ contacts, setContacts }) {
     const { data: refreshed, error: refreshError } = await supabase
       .from("mailing_list")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("effective_signup_at", { ascending: false, nullsFirst: false });
     if (!refreshError && refreshed) setContacts(refreshed);
 
     setSyncing(false);
@@ -257,11 +280,12 @@ export default function AdminMailingList({ contacts, setContacts }) {
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(c =>
-        `${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q)
+        // Nullable names (media_hub rows) would stringify to "null null" here.
+        [c.first_name, c.last_name].filter(Boolean).join(" ").toLowerCase().includes(q) ||
+        (c.email || "").toLowerCase().includes(q)
       );
     }
-    return [...list].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+    return [...list].sort((a, b) => signupAt(b).localeCompare(signupAt(a)));
   }, [contacts, search, subscribedOnly]);
 
   const handleExport = () => {
@@ -304,6 +328,9 @@ export default function AdminMailingList({ contacts, setContacts }) {
           fetched {syncSummary.attendees_fetched} attendee{syncSummary.attendees_fetched !== 1 ? "s" : ""}:{" "}
           <strong>{syncSummary.inserted}</strong> inserted, <strong>{syncSummary.updated}</strong> updated,{" "}
           <strong>{syncSummary.skipped_unsubscribed}</strong> skipped (unsubscribed)
+          {typeof syncSummary.order_dates_captured === "number" && (
+            <>, <strong>{syncSummary.order_dates_captured}</strong> with a real order date</>
+          )}
           {syncSummary.errors?.length > 0 && (
             <span style={{ color: "#e07070" }}> — {syncSummary.errors.length} error{syncSummary.errors.length !== 1 ? "s" : ""}: {syncSummary.errors.join("; ")}</span>
           )}

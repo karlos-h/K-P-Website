@@ -1,0 +1,49 @@
+-- ============================================================
+-- MIGRATION 026 — Fix: grant USAGE on the `private` schema
+-- K&P Website · Run this AFTER migration 025
+-- ============================================================
+-- THE BUG THIS FIXES — root cause of "new row violates row-level
+-- security policy" on every admin write (photo upload, gallery, events,
+-- mixes, videos, mailing list, enquiries…).
+--
+-- Migration 020 moved is_admin() into a `private` schema to hide it from
+-- the PostgREST API, and correctly granted EXECUTE on the function:
+--
+--     grant execute on function private.is_admin() to authenticated, anon;
+--
+-- But it never granted USAGE on the *schema* itself. In Postgres, EXECUTE
+-- on a function is not sufficient — the calling role must ALSO have USAGE
+-- on the containing schema just to resolve the name. The `private` schema
+-- was left with a NULL ACL (owner-only), so for `authenticated`:
+--
+--     select private.is_admin();
+--     ERROR: 42501: permission denied for schema private
+--
+-- Every RLS policy written by migrations 018/020 calls private.is_admin(),
+-- so every one of them threw instead of returning true — which PostgREST
+-- and the Storage API both surface as a generic RLS violation. The admins
+-- allowlist was correctly populated the whole time; the check simply could
+-- never run.
+--
+-- Why the dashboard still loaded: ProtectedRoute/LoginPage call
+-- public.am_i_admin() (migration 021), which lives in `public` — a schema
+-- authenticated *does* have USAGE on. So admin auth appeared to work
+-- perfectly while every subsequent write failed.
+--
+-- Granting USAGE does not expose anything new: `private` contains only
+-- is_admin(), the function is already EXECUTE-granted to these roles, and
+-- schema visibility is independent of PostgREST's exposed-schemas config,
+-- so it stays off the API.
+--
+-- Safe to re-run.
+
+grant usage on schema private to authenticated, anon;
+
+
+-- ── Verify ────────────────────────────────────────────────────
+-- select has_schema_privilege('authenticated','private','USAGE');  -- expect t
+--
+-- Full round-trip as the admin user (substitute their auth.users.id):
+--   set local role authenticated;
+--   select set_config('request.jwt.claims','{"sub":"<uuid>","role":"authenticated"}',true);
+--   select private.is_admin();   -- expect t, not a 42501 error
