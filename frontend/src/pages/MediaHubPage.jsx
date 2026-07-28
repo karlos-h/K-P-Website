@@ -5,6 +5,9 @@ import EventCarousel from "../components/EventCarousel";
 import { useCombinedGalleries } from "../hooks/useCombinedGalleries";
 
 const STORAGE_KEY = "kp_media_hub_email";
+// Set when a returning visitor skips the gate. No email means nothing to log,
+// so a skip never touches Supabase — it only needs to persist the unlock.
+const SKIP_KEY = "kp_media_hub_skipped";
 
 const MOCK_ASSETS = [
   { id: 1, event_name: "Original Sin", event_date: "2025-03-15", category: "Club Night", photo_url: "/gallery/crowd-energy.svg", thumb_url: "/gallery/crowd-energy.svg" },
@@ -64,6 +67,11 @@ function EmailGate({ onUnlock }) {
     onUnlock(email);
   };
 
+  const handleSkip = () => {
+    localStorage.setItem(SKIP_KEY, "true");
+    onUnlock("skipped");
+  };
+
   return (
     <div className="email-gate">
       <div className="email-gate__card">
@@ -82,25 +90,29 @@ function EmailGate({ onUnlock }) {
             aria-hidden="true"
             style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", opacity: 0 }}
           />
-          <label>
-            <span>Your Email</span>
+          <div className="email-gate__field">
+            <Mail size={21} className="email-gate__field-icon" aria-hidden="true" />
             <input
               type="email"
+              aria-label="Your email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => { setEmail(e.target.value); setError(""); }}
               required
             />
-          </label>
+            <button className="button button--gold email-gate__submit" type="submit" disabled={loading}>
+              {loading ? "Unlocking…" : "Unlock Gallery"}
+            </button>
+          </div>
           {error && <p className="email-gate__error">{error}</p>}
-          <button className="button button--gold" type="submit" disabled={loading}>
-            {loading ? "Unlocking…" : "Unlock Gallery"}
-          </button>
         </form>
         <p className="email-gate__disclaimer">
           <Mail size={12} /> We'll add you to our mailing list for occasional gig
           announcements, and use this to track download activity. Unsubscribe any time.
         </p>
+        <button type="button" className="email-gate__skip" onClick={handleSkip}>
+          Already signed up? Skip →
+        </button>
       </div>
     </div>
   );
@@ -120,9 +132,13 @@ function Lightbox({ assets, index, onClose, onPrev, onNext }) {
   }, [onClose, onPrev, onNext]);
 
   const handleDownload = async () => {
+    // Visitors who skipped the gate have no email — log the download without
+    // one rather than writing a placeholder into media_downloads.
     const email = localStorage.getItem(STORAGE_KEY);
+    const row = { photo_id: asset.id, event_name: asset.event_name, downloaded_at: new Date().toISOString() };
+    if (email) row.email = email;
     try {
-      await supabase.from("media_downloads").insert([{ email, photo_id: asset.id, event_name: asset.event_name, downloaded_at: new Date().toISOString() }]);
+      await supabase.from("media_downloads").insert([row]);
     } catch (_) {}
 
     const link = document.createElement("a");
@@ -153,7 +169,9 @@ function Lightbox({ assets, index, onClose, onPrev, onNext }) {
 }
 
 export default function MediaHubPage() {
-  const [unlockedEmail, setUnlockedEmail] = useState(() => localStorage.getItem(STORAGE_KEY));
+  const [unlockedEmail, setUnlockedEmail] = useState(
+    () => localStorage.getItem(STORAGE_KEY) || (localStorage.getItem(SKIP_KEY) ? "skipped" : null)
+  );
   const { galleries, loading } = useCombinedGalleries();
 
   // Flat fallback when Supabase has no grouped data yet
@@ -183,7 +201,7 @@ export default function MediaHubPage() {
               <div className="section-heading section-heading--left">
                 <p className="section-label">Media Hub</p>
                 <h2>Event Photo Gallery</h2>
-                <p>Browse and download high-res photos from our events. Click any photo to view fullscreen.</p>
+                <p>Browse and download photos from our events. Click any photo to view fullscreen.</p>
               </div>
 
               {loading ? (

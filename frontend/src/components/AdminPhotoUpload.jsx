@@ -263,8 +263,18 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
         >
           {uploading ? "Uploading…" : `Upload ${files.length > 0 ? files.length + " photo" + (files.length !== 1 ? "s" : "") : ""}`}
         </button>
-        {done && !dbError && <span style={rs.doneText}>✓ All done — photos are live on the site</span>}
-        {dbError && <span style={rs.errorText}>⚠ {dbError}</span>}
+        {done && dbError && <span style={rs.errorText}>⚠ {dbError}</span>}
+        {done && !dbError && Object.keys(errors).length === 0 && (
+          <span style={rs.doneText}>✓ All done — photos are live on the site</span>
+        )}
+        {done && !dbError && Object.keys(errors).length > 0 && (
+          <span style={rs.errorText}>
+            ⚠ {Object.keys(errors).length} of {files.length} photo{files.length !== 1 ? "s" : ""} failed to upload — see errors above.
+            {files.length - Object.keys(errors).length > 0
+              ? ` ${files.length - Object.keys(errors).length} succeeded.`
+              : ""}
+          </span>
+        )}
       </div>
     </div>
   );
