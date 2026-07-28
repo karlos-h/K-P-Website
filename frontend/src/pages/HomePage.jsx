@@ -513,7 +513,7 @@ function HomePage() {
             <SectionHeading
               label="Events"
               title="Upcoming & Past Highlights"
-              copy="From home-city club nights to international festival stages."
+              copy="From home city club nights to international festival stages."
             />
             <div className="tabs" role="tablist" aria-label="Event filters">
               {["upcoming", "past"].map((tab) => (
@@ -528,7 +528,7 @@ function HomePage() {
                 </button>
               ))}
             </div>
-            <div className={eventTab === "past" ? "events__list events__list--scrollable" : "events__list"}>
+            <div className="events__list events__list--scrollable">
               {filteredEvents.map((event, index) => (
                 <motion.article
                   className="event-card"
@@ -622,7 +622,7 @@ function HomePage() {
             <SectionHeading
               label="Watch"
               title="See the Sets"
-              copy="Full sets, event recaps, and behind-the-scenes from Kava & Pyramids."
+              copy="Watch the latest full sets, event recaps, and behind the scenes from Kava & Pyramids."
             />
             <WatchCarousel />
             <motion.div

@@ -378,6 +378,7 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   .date-block span { flex: 1; min-width: 0; }
   .event-card { grid-template-columns: 1fr; gap: .8rem; padding: 1.5rem; }
   .event-card .pill { justify-self: start; }
+  .events__list--scrollable { max-height: 27rem; }
   .gallery__grid { grid-auto-rows: 210px; }
   .gallery-card, .gallery-card:first-child, .gallery-card:nth-child(5) { grid-column: 1 / -1; }
   .lightbox { grid-template-columns: 40px minmax(0, 1fr) 40px; padding: 1rem .2rem; }
@@ -742,6 +743,15 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
    use our own .platform-feed__header instead for visual consistency with Instagram. */
 .tiktok-feed-frame .sk-posts-header { display: none !important; }
 .tiktok-feed-frame .sk-widget-loader { margin: 2rem auto; }
+/* The widget wraps itself in a hardcoded white card (bg #fff, 2px #e5e5e5 border,
+   12px radius, 24px padding). Strip it so the feed sits flush on the dark section,
+   matching the borderless Instagram (Behold) grid above it. */
+.sk-tiktok-feed {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
 .tiktok-feed-frame .sk-posts-grid {
   display: grid !important;
   grid-template-columns: repeat(6, 1fr) !important;
@@ -751,13 +761,21 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   aspect-ratio: 1 !important;
   min-height: 0 !important;
   max-height: none !important;
-  border: 1px solid var(--line);
-  border-radius: .35rem;
+  /* The widget's JS forces border-color: #f5f5f5 (a near-white line that clashes
+     with the dark theme) in a way no author CSS can override — not even inline
+     !important. So we zero its border out entirely and draw our own thin gold
+     line with an inset box-shadow, which the widget doesn't touch. */
+  border: 0 !important;
+  box-shadow: inset 0 0 0 1px var(--line) !important;
+  border-radius: .35rem !important;
   overflow: hidden;
   position: relative !important;
-  transition: border-color .25s ease, transform .25s ease;
+  transition: box-shadow .25s ease, transform .25s ease;
 }
-.tiktok-feed-frame .sk-post-item:hover { border-color: rgba(201, 168, 76, .55); transform: translateY(-3px); }
+.tiktok-feed-frame .sk-post-item:hover {
+  box-shadow: inset 0 0 0 1px rgba(201, 168, 76, .55) !important;
+  transform: translateY(-3px);
+}
 .tiktok-feed-frame .sk-post-image {
   position: absolute !important;
   inset: 0 !important;
