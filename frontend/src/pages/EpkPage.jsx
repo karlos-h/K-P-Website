@@ -127,7 +127,7 @@ export default function EpkPage() {
                 Kava &amp; Pyramids
               </h1>
               <p style={{ color: "var(--muted)", fontSize: "1.1rem", maxWidth: "36rem", margin: "0 auto 2rem" }}>
-                Open-format DJ Duo · Christchurch, New Zealand<br />
+                Open format DJ Duo · Christchurch, New Zealand<br />
                 {GENRES.join(" · ")}
               </p>
               <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
@@ -149,19 +149,19 @@ export default function EpkPage() {
             <h2>Who We Are</h2>
             <p style={{ color: "var(--muted)", lineHeight: 1.8, marginBottom: "1.2rem" }}>
               Kava &amp; Pyramids are a DJ duo from Christchurch, New Zealand, formed from a friendship that
-              started in high school in 2018. They began DJing in 2023 and quickly built a reputation for
-              high-energy, open-format sets that keep dancefloors moving from start to finish.
+              started in 2018. They began DJing in 2023 and quickly built a reputation for
+              high energy, open format sets that keep dancefloors moving from start to finish.
             </p>
             <p style={{ color: "var(--muted)", lineHeight: 1.8, marginBottom: "1.2rem" }}>
-              Their Fijian and Egyptian heritage sits at the core of what they do — <em>Kava</em> represents the
+              Their Fijian and Egyptian heritage sits at the core of what they do, <em>Kava</em> represents the
               ceremony, community, and warmth that happens on the dancefloor; <em>Pyramids</em> represents the
               ambition, craft, and endurance that goes into every set. Together they create something that feels
               both celebratory and intentional.
             </p>
             <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>
-              That start in Christchurch high school hallways now plays out most weekends as weekly
-              residencies — Kong Bar on Saturdays, Original Sin on Fridays — alongside festival stages
-              and international performances across New Zealand, Fiji, and Australia. The movement is growing.
+              Now they play out most weekends in Christchurch city as resident of the strip on Friday and Saturdays, 
+              alongside festival stages and international performances across New Zealand, Fiji, and Australia. 
+              The movement is growing.
             </p>
           </motion.div>
         </section>
@@ -187,9 +187,9 @@ export default function EpkPage() {
             </div>
             <div style={{ marginTop: "2rem", display: "grid", gap: "0.75rem" }}>
               {[
-                "Crowd-reading, open-format sets",
+                "Crowd reading, open format sets",
                 "Seamless mixing and transitions",
-                "Peak-time and warmup experience",
+                "Peak time and warmup experience",
                 "Adaptable to venue size and crowd demographic",
                 "Professional setup and sound requirements provided on request",
               ].map((item) => (
