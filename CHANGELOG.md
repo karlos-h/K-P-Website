@@ -5,6 +5,18 @@ Format: newest version first.
 
 ---
 
+## v5.20.1 — Backfill order dates for unsubscribed contacts
+
+### Fixed
+- **The v5.20.0 order-date fix only reached 45% of Humanitix contacts.** The first real sync on v13 captured a genuine purchase date for 86 of 192 rows — the remaining 106 were *all* `subscribed = false`. The sync's "never resubscribe or overwrite someone who has unsubscribed" guard returned early before the update ran, so unsubscribed contacts never received `order_created_at` (or `order_id`) and kept sorting by the sync timestamp, which is exactly the bug v5.20.0 set out to fix. That guard exists to protect consent, but an order's historical timestamp is neutral metadata, not a consent field. The branch now backfills `order_created_at`/`order_id` only, and still never touches `subscribed`, `first_name`, `last_name`, `source`, or `event_title`
+
+### Notes
+- The 106 affected rows correct themselves on the next sync — no manual data fix needed
+- Confirmed against the live API: the Humanitix order object does expose `completedAt`/`createdAt` as documented, yielding real purchase dates spanning 2026-06-12 → 2026-07-10 rather than the sync timestamp
+- The Netlify MCP connector now authenticates against the correct team ("KP Enterprise" / `kavapyramids`). Production site is `kavapyramids` deploying from `main`; `kavapyramids.com` remains unregistered by design (free tier, domain planned later)
+
+---
+
 ## v5.20.0 — Repair admin writes (RLS), fix Humanitix sync, capture Media Hub signups, auto-age events
 
 ### Fixed
