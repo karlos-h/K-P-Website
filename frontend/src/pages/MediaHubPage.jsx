@@ -38,6 +38,27 @@ function EmailGate({ onUnlock }) {
     } catch (_) {
       // Non-blocking — proceed even if Supabase isn't set up yet
     }
+
+    // Also add them to the mailing list so the signup is visible in the
+    // admin dashboard (migration 024 allows source = 'media_hub' and makes
+    // the name columns nullable). Anon has INSERT only — no UPDATE — so
+    // .upsert() isn't available; a repeat visitor trips the unique index on
+    // lower(email), which just means they're already subscribed.
+    try {
+      const { error } = await supabase.from("mailing_list").insert([{
+        email,
+        source: "media_hub",
+        subscribed: true,
+        first_name: null,
+        last_name: null,
+        event_title: null,
+      }]);
+      if (error && error.code !== "23505") throw error;
+    } catch (err) {
+      // Never block gallery access on a mailing-list write.
+      console.error("media_hub mailing_list signup failed:", err);
+    }
+
     localStorage.setItem(STORAGE_KEY, email);
     setLoading(false);
     onUnlock(email);
@@ -77,7 +98,8 @@ function EmailGate({ onUnlock }) {
           </button>
         </form>
         <p className="email-gate__disclaimer">
-          <Mail size={12} /> We only use this to track download activity — no spam.
+          <Mail size={12} /> We'll add you to our mailing list for occasional gig
+          announcements, and use this to track download activity. Unsubscribe any time.
         </p>
       </div>
     </div>
