@@ -351,7 +351,7 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   .nav__toggle { display: block; }
   .nav__links { position: absolute; top: 66px; right: 0; left: 0; display: none; flex-direction: column; align-items: stretch; gap: 0; padding: 1.2rem; border-bottom: 1px solid var(--line); background: rgba(8,8,8,.98); }
   .nav__links--open { display: flex; }
-  .nav__links > button:not(.button) { padding: 1rem; text-align: left; }
+  .nav__links > button:not(.button), .nav__links > .nav__external-link { padding: 1rem; text-align: left; }
   .nav__book { margin-top: .5rem; }
   .movement__grid, .about__grid, .press__grid { grid-template-columns: 1fr; }
   .movement__grid { gap: 3.5rem; }
@@ -408,11 +408,15 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 }
 
 /* ── Nav external links ── */
+/* Matches `.nav__links > button:not(.button)` so these sit inline with, and
+   read identically to, the scroll-to nav buttons. */
 .nav__external-link {
-  font-size: 0.82rem;
-  color: var(--muted);
-  padding: 0.25rem 0;
-  transition: color 0.2s;
+  padding: .5rem 0;
+  color: #aaa7a0;
+  font-size: .67rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  transition: color .2s ease;
 }
 .nav__external-link:hover { color: var(--gold); }
 
@@ -477,11 +481,57 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 }
 .email-gate__card h2 { font-size: 2rem; margin-bottom: 0.75rem; }
 .email-gate__card p { margin-bottom: 1.75rem; }
-.email-gate__card form { display: grid; gap: 1rem; }
-.email-gate__card label { display: grid; gap: 0.4rem; text-align: left; }
-.email-gate__card label span { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
-.email-gate__error { color: #e05c5c; font-size: 0.82rem; margin: 0; }
+.email-gate__card form { display: grid; gap: 0.6rem; }
+/* Single-row pill: icon + input + submit share one rounded bar. */
+.email-gate__field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.35rem 0.35rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+  transition: border-color 0.2s ease;
+}
+.email-gate__field:focus-within { border-color: var(--gold); }
+.email-gate__field-icon { flex-shrink: 0; color: var(--gold); }
+.email-gate__field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--cream);
+  font-size: 1rem;
+}
+.email-gate__field input::placeholder { color: var(--muted); }
+.email-gate__submit { flex-shrink: 0; min-height: 42px; padding: 0.75rem 1.35rem; border-radius: 999px; }
+.email-gate__submit:hover:not(:disabled) { transform: none; }
+.email-gate__error { color: #e05c5c; font-size: 0.82rem; margin: 0; text-align: left; }
 .email-gate__disclaimer { font-size: 0.72rem; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 0.35rem; margin-top: 0.75rem; margin-bottom: 0; }
+.email-gate__skip {
+  margin-top: 1rem;
+  padding: 0.25rem 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+.email-gate__skip:hover { color: var(--gold); }
+
+@media (max-width: 480px) {
+  /* Too narrow for icon + input + button on one line — stack the button. */
+  .email-gate__field { flex-wrap: wrap; padding: 0.5rem 0.5rem 0.5rem 1rem; border-radius: 1.25rem; }
+  .email-gate__field input { flex-basis: 60%; }
+  .email-gate__submit { width: 100%; }
+}
 
 /* ── Media Hub Grid ── */
 .media-hub__grid {
@@ -997,11 +1047,6 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   font-size: 1.15rem;
   margin: 0;
   color: var(--cream);
-}
-.event-carousel__count {
-  font-size: 0.72rem;
-  color: var(--muted);
-  letter-spacing: 0.04em;
 }
 .event-carousel__subtitle {
   font-size: 0.75rem;

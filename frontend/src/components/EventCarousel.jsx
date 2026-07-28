@@ -245,9 +245,6 @@ export default function EventCarousel({ group, delay = 0 }) {
         <div className="event-carousel__meta">
           <h3>{event_name}</h3>
           <p className="event-carousel__subtitle">{formattedDate ?? "Date TBC"}</p>
-          <span className="event-carousel__count">
-            {photos.length} photo{photos.length !== 1 ? "s" : ""} — click to browse
-          </span>
         </div>
       </button>
 
