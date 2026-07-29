@@ -1,0 +1,52 @@
+{
+  "strictness": 2,
+  "commentTypes": ["logic", "syntax", "style"],
+  "triggerOnUpdates": true,
+  "instructions": "This is a React + Vite SPA with NO custom backend server. The browser talks to Supabase directly, and every write is authorised by Row Level Security policies in supabase/migrations/, not by application code. Treat those migrations as the security boundary. Unauthenticated inserts from public forms (booking enquiries, mailing list, Media Hub email gate, Crowd POV submissions and reports) are intentional and are protected by anon-INSERT-only policies with no SELECT policy — do not report them as missing authorisation or missing server-side validation. Focus instead on: ordering bugs between Supabase Storage operations and database writes (a failure part-way through must never leave a visitor's photo publicly reachable, or delete a record while its file survives), React hook dependency and stale-closure issues, and anything that could expose a submitter's email address or an unapproved photo.",
+  "customContext": {
+    "rules": [
+      {
+        "rule": "Anything prefixed VITE_ is inlined into the public browser bundle by Vite. Flag it as a leaked secret if a genuinely private value (service-role key, API secret, token) is ever given a VITE_ prefix or read via import.meta.env for privileged use.",
+        "scope": ["frontend/**"]
+      },
+      {
+        "rule": "The Supabase URL and anon key hardcoded as fallbacks in frontend/src/lib/supabase.js are deliberate and are NOT a leaked secret. The anon key is a publishable key that ships in the bundle by design and is meaningless without RLS. Do not report it.",
+        "scope": ["frontend/src/lib/supabase.js"]
+      },
+      {
+        "rule": "Migrations are append-only and numbered. Never suggest editing an already-applied migration file — corrections must be a new numbered migration. Migrations 029 and 030 are deliberately broken diagnostic steps that only make sense as part of the sequence 028-032 closes; do not report them as bugs in isolation.",
+        "scope": ["supabase/migrations/**"]
+      },
+      {
+        "rule": "Storage-then-database ordering is deliberate throughout the Crowd POV admin flow: the file is moved or deleted before the database is touched, and a failure after the file has moved must roll the move back. Check that every early-return path leaves storage and the database consistent, and that a failed action can be retried without wedging or duplicating.",
+        "scope": ["frontend/src/components/AdminCrowdReview.jsx", "frontend/src/components/CrowdPovModal.jsx"]
+      },
+      {
+        "rule": "The admin dashboard components style themselves with inline JS style objects rather than CSS classes. This is an established convention in this codebase, not a defect — do not suggest extracting them to stylesheets.",
+        "scope": ["frontend/src/components/Admin*.jsx", "frontend/src/pages/AdminDashboard.jsx"]
+      },
+      {
+        "rule": "kavapyramids.com appears in index.html, robots.txt and sitemap.xml but is not a registered domain yet. These placeholder URLs are known and intentional — do not report them as broken links or misconfiguration.",
+        "scope": ["frontend/index.html", "frontend/public/**"]
+      }
+    ],
+    "files": [
+      {
+        "path": "README.md",
+        "description": "Project overview: routes, stack, admin gating, environment variables, deploy and release flow."
+      },
+      {
+        "path": "supabase/README.md",
+        "description": "What each migration range does, the storage buckets and their access levels, and the secrets policy."
+      },
+      {
+        "path": "CHANGELOG.md",
+        "description": "Release history with the reasoning behind past decisions. Useful for judging whether something is a deliberate choice or a regression."
+      }
+    ]
+  },
+  "ignorePatterns": "**/node_modules/**\nfrontend/dist/**\nfrontend/package-lock.json\n**/*.svg\nfrontend/public/media/**",
+  "excludeAuthors": ["dependabot[bot]"],
+  "fixWithAI": true,
+  "includeConfidenceScore": true
+}
