@@ -228,7 +228,7 @@ function CarouselStrip({ photos, onPhotoClick, reduceMotion }) {
     const track = trackRef.current;
     if (!track || reduceMotion || photos.length < 2) return;
 
-    const step = (ts) => {
+    const step = () => {
       if (!pausedRef.current) {
         posRef.current += SCROLL_SPEED;
         const half = track.scrollWidth / 2;
@@ -498,16 +498,21 @@ export default function EventCarousel({ group, delay = 0 }) {
         </div>
       )}
 
-      {/* ── Scrolling strip ── */}
+      {/* ── Scrolling strip ──
+          "Photos coming soon" is only true when there is genuinely nothing to
+          show. A crowd-only group (no native photos, no external gallery — the
+          synthetic group useCombinedGalleries creates) renders its Crowd POV
+          grid below, so the empty state would sit directly above a wall of
+          photos and contradict it. */}
       {hasNative ? (
         <CarouselStrip
           photos={photos}
           onPhotoClick={setLightboxIndex}
           reduceMotion={!!reduceMotion}
         />
-      ) : (
+      ) : crowdPhotos.length === 0 ? (
         <CarouselEmpty />
-      )}
+      ) : null}
 
       {/* ── External gallery section (when native photos also exist) ── */}
       {hasExternal && (

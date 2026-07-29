@@ -208,6 +208,13 @@ export default function AdminCrowdReview({ events, adminUserId }) {
   // Fail-safe ordering: never touch the database until the file has
   // actually moved/been deleted, so a half-failed action can't leave an
   // approved row pointing at a file that never went public.
+  //
+  // The file moving first has its own failure mode, though: between the move
+  // and the insert, the photo is sitting in a PUBLIC bucket with nothing in the
+  // database saying it was approved. Failing there without undoing the move
+  // would leave a visitor's photo publicly reachable, and would also wedge
+  // every retry — the move below looks in the pending bucket, and the file is
+  // no longer there. So the move is rolled back on failure.
   const handleApprove = async (submission) => {
     setBusy(submission.id);
     setError("");
@@ -217,6 +224,15 @@ export default function AdminCrowdReview({ events, adminUserId }) {
       .from(PENDING_BUCKET)
       .move(submission.storage_path, submission.storage_path, { destinationBucket: PUBLIC_BUCKET });
     if (moveError) { setError(`Storage: ${moveError.message}`); setBusy(null); return; }
+
+    // Put the file back where it came from, so the submission is exactly as it
+    // was before Approve was clicked and the next attempt starts clean.
+    const rollbackMove = async () => {
+      const { error: rollbackError } = await supabase.storage
+        .from(PUBLIC_BUCKET)
+        .move(submission.storage_path, submission.storage_path, { destinationBucket: PENDING_BUCKET });
+      return rollbackError;
+    };
 
     // 2. Public URL of the moved file.
     const { data: { publicUrl } } = supabase.storage
@@ -229,14 +245,31 @@ export default function AdminCrowdReview({ events, adminUserId }) {
       submission_id: submission.id,
       photo_url: publicUrl,
     });
-    if (insertError) { setError(`DB (crowd_photos): ${insertError.message}`); setBusy(null); return; }
+    if (insertError) {
+      const rollbackError = await rollbackMove();
+      setError(
+        rollbackError
+          ? `DB (crowd_photos): ${insertError.message}. The photo could NOT be moved back to the private bucket (${rollbackError.message}) — it is currently public at ${PUBLIC_BUCKET}/${submission.storage_path} and needs removing by hand.`
+          : `DB (crowd_photos): ${insertError.message}. The photo was moved back to the private bucket, so nothing was published — safe to try again.`
+      );
+      setBusy(null);
+      return;
+    }
 
-    // 4. Mark the submission approved.
+    // 4. Mark the submission approved. By this point the photo is genuinely
+    //    live, so this failing is a stale-status problem, not a publishing one
+    //    — say so plainly rather than implying the approval didn't happen.
     const { error: updateError } = await supabase
       .from("crowd_submissions")
       .update({ status: "approved", reviewed_at: new Date().toISOString(), reviewed_by: adminUserId })
       .eq("id", submission.id);
-    if (updateError) { setError(`DB (crowd_submissions): ${updateError.message}`); setBusy(null); return; }
+    if (updateError) {
+      setError(
+        `DB (crowd_submissions): ${updateError.message}. The photo IS published and live on the site — only its review status failed to save, so it will reappear in this queue. Do not approve it again (that would publish a duplicate); fix the status directly instead.`
+      );
+      setBusy(null);
+      return;
+    }
 
     removeFromQueue(submission.id);
     setBusy(null);
@@ -312,12 +345,22 @@ export default function AdminCrowdReview({ events, adminUserId }) {
     setError("");
     const now = new Date().toISOString();
 
-    // 1. Delete the file from the public bucket.
+    // 1. Delete the file from the public bucket. If the path can't be worked
+    //    out from the stored URL, stop — this is the takedown path for a
+    //    no-consent report, so quietly skipping the delete and carrying on
+    //    would report success while leaving the photo served from storage,
+    //    with the record that points at it now gone.
     const path = storagePathFromUrl(card.photo.photo_url);
-    if (path) {
-      const { error: storageError } = await supabase.storage.from(PUBLIC_BUCKET).remove([path]);
-      if (storageError) { setError(`Storage: ${storageError.message}`); setBusy(null); return; }
+    if (!path) {
+      setError(
+        `Couldn't derive a storage path from this photo's URL (${card.photo.photo_url}), so the file was not deleted. Nothing has been changed — the photo is still hidden. Remove the file from the ${PUBLIC_BUCKET} bucket by hand, then try again.`
+      );
+      setBusy(null);
+      return;
     }
+
+    const { error: storageError } = await supabase.storage.from(PUBLIC_BUCKET).remove([path]);
+    if (storageError) { setError(`Storage: ${storageError.message}`); setBusy(null); return; }
 
     // 2. Resolve the reports before the photo row goes — deleting it cascades
     //    them away (migration 036), so this has to happen first to mean anything.
