@@ -35,6 +35,32 @@ Format: newest version first.
 
 ---
 
+## v5.22.0 — Mobile capped scroll for Trusted Venues + For Promoters, hero/Photo Hub copy polish
+
+### Changed
+- **Trusted Venues and For Promoters now scroll inside their own box on mobile** instead of running the page long. Below 640px — the breakpoint where both grids collapse to a single column — `.trusted__grid` caps at `25rem` and `.why-book__grid` at `34rem`, each with `overflow-y: auto` and a thin gold scrollbar styled for both WebKit (`::-webkit-scrollbar`, 4px) and Firefox (`scrollbar-width` / `scrollbar-color`). Both rules live inside the existing `max-width: 640px` block, so the two- and multi-column layouts above that breakpoint are untouched
+- **Hero tagline trimmed to "to the World"** (previously "CHCH to the World")
+- **Homepage Photo Hub blurb** now reads "Browse and download photos from our latest events"
+
+### Added
+- `docs/trusted-venues-scroll-prompt.md` and `docs/why-book-scroll-prompt.md` — the working briefs behind the two scroll changes, kept in the repo alongside the code they produced
+
+---
+
+## v5.21.1 — Media Hub source label, EPK copy polish, drop stale residency
+
+### Fixed
+- **The Mailing List tab showed the raw `media_hub` database value** in its Source column, leaking a schema detail into the admin UI. It now renders as "Media Hub"; every other source (`manual`, `humanitix`) still displays verbatim
+
+### Changed
+- **EPK copy de-hyphenated throughout** — "Open-format" → "Open format", "high-energy" → "high energy", "Crowd-reading" → "Crowd reading", "Peak-time" → "Peak time". The em dash introducing the heritage explanation became a comma, and "started in high school in 2018" is now simply "started in 2018"
+- **The EPK bio no longer names specific weekly residencies.** "Kong Bar on Saturdays, Original Sin on Fridays" became "resident of the strip on Friday and Saturdays", so the page doesn't go stale each time a residency changes hands
+
+### Removed
+- **The "Original Sin — Fridays" residency** from `siteData.js`, leaving Kong Bar on Saturdays as the only live entry — the same staleness the EPK rewrite above addresses, at the data layer
+
+---
+
 ## v5.21.0 — Media Hub gate skip + pill redesign, nav typography, honest photo counts
 
 ### Added
