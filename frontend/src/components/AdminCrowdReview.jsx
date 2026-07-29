@@ -334,16 +334,21 @@ export default function AdminCrowdReview({ events, adminUserId }) {
   // flips, because the public read policy is what enforces hiding (migration
   // 036). Nothing in storage or crowd_submissions changes — it was never
   // untrue that this photo was approved.
+  //
+  // Reports are dismissed BEFORE the photo is unhidden, and the ordering is
+  // load-bearing. fetchReported only surfaces photos with hidden = true, so
+  // the moment the unhide lands this card can never be fetched again — if
+  // dismissing failed after that, its still-open reports would be orphaned
+  // with no admin path back to them, silently eating into migration 037's
+  // 20-per-photo cap. This way both halves fail recoverably: if the dismiss
+  // fails the photo is still hidden and Restore can simply be retried; if
+  // the unhide fails the photo reappears in the queue with zero open
+  // reports, and retrying Restore just re-runs a no-op dismiss plus the
+  // unhide.
   const handleRestore = async (card) => {
     setBusy(card.photo.id);
     setError("");
     const now = new Date().toISOString();
-
-    const { error: unhideError } = await supabase
-      .from("crowd_photos")
-      .update({ hidden: false })
-      .eq("id", card.photo.id);
-    if (unhideError) { setError(`DB (crowd_photos): ${unhideError.message}`); setBusy(null); return; }
 
     const { error: reportsError } = await supabase
       .from("crowd_photo_reports")
@@ -351,6 +356,18 @@ export default function AdminCrowdReview({ events, adminUserId }) {
       .eq("crowd_photo_id", card.photo.id)
       .eq("status", "open");
     if (reportsError) { setError(`DB (crowd_photo_reports): ${reportsError.message}`); setBusy(null); return; }
+
+    const { error: unhideError } = await supabase
+      .from("crowd_photos")
+      .update({ hidden: false })
+      .eq("id", card.photo.id);
+    if (unhideError) {
+      setError(
+        `DB (crowd_photos): ${unhideError.message}. The reports were dismissed but the photo is still hidden — click Restore again to finish unhiding it.`
+      );
+      setBusy(null);
+      return;
+    }
 
     dropReportedCard(card.photo.id);
     setBusy(null);
