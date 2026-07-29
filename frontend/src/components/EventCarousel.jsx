@@ -116,7 +116,14 @@ function Lightbox({ photos, startIndex, onClose, reportable = false }) {
       details: details.trim() || null,
     }]);
 
-    if (error) {
+    // Migration 037 caps open reports at 20 per photo, in the insert policy's
+    // WITH CHECK — so hitting it surfaces as a bare RLS violation. Showing a
+    // visitor "new row violates row-level security policy" would be both
+    // alarming and useless. Treat it as done instead, which is honest: 20 open
+    // reports means the photo was hidden long ago and is sitting in the review
+    // queue, so what this person wanted has already happened. Same 42501
+    // handling CrowdPovModal does for the submission cap.
+    if (error && error.code !== "42501") {
       setReportError(`Couldn't send that report: ${error.message}`);
       setSubmitting(false);
       return;

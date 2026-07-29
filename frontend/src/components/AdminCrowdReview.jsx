@@ -10,6 +10,18 @@ const REASON_LABELS = {
   other: "Other",
 };
 
+// Migration 037 caps open reports at 20 per photo, so a card can't grow
+// without bound — but 20 report bodies per card, across every hidden photo,
+// is still a wall of text to scroll past when the decision is usually
+// obvious from the first few. Render a handful and count the rest.
+const MAX_VISIBLE_REPORTS = 5;
+
+// Backstop on the fetch itself. With the per-photo cap this only binds once
+// there are ~25 hidden photos at once, which would be its own emergency —
+// but an unbounded select feeding a render loop is the thing that made this
+// worth fixing, so it should not be unbounded here either.
+const REPORT_FETCH_LIMIT = 500;
+
 // crowd_photos stores the full public URL; the Storage API wants the path
 // within the bucket. Same extraction AdminGalleryManager does for event-photos.
 function storagePathFromUrl(url) {
@@ -87,7 +99,7 @@ function ReportedCard({ card, event, busy, onRestore, onRemoveClick }) {
           {card.reports.length} open report{card.reports.length !== 1 ? "s" : ""}
         </p>
         <div style={c.reportList}>
-          {card.reports.map((report) => (
+          {card.reports.slice(0, MAX_VISIBLE_REPORTS).map((report) => (
             <div key={report.id} style={c.reportItem}>
               <span style={c.reportReason}>{REASON_LABELS[report.reason] ?? report.reason}</span>
               <span style={c.reportDate}>
@@ -96,6 +108,12 @@ function ReportedCard({ card, event, busy, onRestore, onRemoveClick }) {
               {report.details && <p style={c.reportDetails}>“{report.details}”</p>}
             </div>
           ))}
+          {card.reports.length > MAX_VISIBLE_REPORTS && (
+            <p style={c.reportOverflow}>
+              + {card.reports.length - MAX_VISIBLE_REPORTS} more report
+              {card.reports.length - MAX_VISIBLE_REPORTS !== 1 ? "s" : ""} not shown
+            </p>
+          )}
         </div>
       </div>
       <div style={c.cardActions}>
@@ -152,7 +170,8 @@ export default function AdminCrowdReview({ events, adminUserId }) {
         .select("*")
         .eq("status", "open")
         .in("crowd_photo_id", photos.map((photo) => photo.id))
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .limit(REPORT_FETCH_LIMIT);
 
       if (cancelled) return;
       if (reportsError) { setError(`Reports: ${reportsError.message}`); return; }
@@ -536,4 +555,5 @@ const c = {
   reportReason: { color: "#f0ece3", fontSize: "0.75rem", display: "block" },
   reportDate: { color: "#555", fontSize: "0.68rem" },
   reportDetails: { color: "#777", fontSize: "0.72rem", margin: "0.25rem 0 0", lineHeight: 1.5, fontStyle: "italic" },
+  reportOverflow: { color: "#555", fontSize: "0.68rem", margin: "0.25rem 0 0", fontStyle: "italic" },
 };

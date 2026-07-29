@@ -5,6 +5,33 @@ Format: newest version first.
 
 ---
 
+## v5.24.0 — Crowd POV moderation hardening, code-review fixes, lint config repair
+*Migration 037 applied live via Supabase MCP. Findings from a local review plus Greptile's first PR review on [#1](https://github.com/kavapyramids/K-P-Website/pull/1)*
+
+### Fixed
+- **A failed approval could leave a visitor's photo publicly reachable, permanently.** `handleApprove` moved the file into the public bucket before inserting the `crowd_photos` row, and bailed out on insert failure with the file left where it was — published, with nothing in the database recording an approval. Worse, it wedged every retry: the move looks in the pending bucket, and the file was no longer there. The move is now rolled back on insert failure, restoring the exact pre-click state. If the rollback itself fails, the error names the bucket and path so it can be cleaned up by hand
+- **The step-4 failure message in approval was actively misleading.** By that point the photo is genuinely live and only its review status failed to save, but the message read like the approval hadn't happened — inviting a second click that would publish a duplicate. It now says so explicitly
+- **"Remove Permanently" could report success while deleting nothing.** When `storagePathFromUrl` couldn't parse a photo's URL it skipped the storage delete entirely and carried on to drop the database record — leaving the file served from storage with the only record pointing at it now gone. This is the takedown path for a no-consent report, so it now aborts before touching the database and leaves the photo hidden
+- **Crowd-only event cards contradicted themselves.** An event with crowd photos but no native photos and no external gallery — the synthetic group `useCombinedGalleries` creates — rendered "Photos coming soon" directly above a full Crowd POV grid. The empty state now only shows when there is genuinely nothing to display
+- **`npm run lint` reported 13 errors, 6 of them false.** `motion` and `Icon` are used, but only inside JSX, and base `no-unused-vars` doesn't track JSX identifiers — deleting those imports would have broken the build. The `varsIgnorePattern: "^[A-Z_]"` had been masking this by accident, hiding every capitalised component import so that only lowercase JSX identifiers ever surfaced. Added `eslint-plugin-react` and enabled `react/jsx-uses-vars`, which fixes the cause and makes the remaining reports trustworthy. The genuine errors are gone too, including a dead cluster in `MediaHubPage` — an orphaned `Lightbox`, `MOCK_ASSETS`, and a `media_assets` query that ran on every page load and rendered nowhere
+
+### Changed
+- **Reports are now capped at 20 open per photo, in the database.** **Migration 037** adds `private.crowd_photo_report_count()` to the insert policy's `WITH CHECK`. The client-side guard in `EventCarousel` was always documented as a speed bump rather than a boundary, and it is one: the anon key ships in the bundle by design, so anyone can POST to `crowd_photo_reports` directly and never load the page. `crowd_photos` ids are publicly readable, so they are trivially enumerable — an unbounded insert path plus an admin panel that rendered every report it fetched meant a public form could be used to make the moderation queue unusable. The count is of **open** reports only, mirroring how `crowd_submission_count` ignores `'rejected'`: once an admin dismisses a round the slate clears, so a photo is not permanently un-reportable for having survived one. Deliberately given no public wrapper — the frontend has no need to ask how many people reported a photo, and answering would leak moderation state
+- **Anon uploads to `crowd-pov-pending` must now match `{uuid}/{uuid}.jpg`.** The policy from migration 033 checked only the bucket, so any key was writable. The hourly sweep removed unreferenced files, but that left an hour for junk to accumulate at up to 15 MB per object. Verified before writing: `events.id` is a `uuid`, so the pattern matches genuine submissions — had it been a `bigint` this would have silently rejected every upload
+- **Hitting the report cap no longer shows a visitor raw Postgres.** A capped insert surfaces as a bare RLS violation, so `EventCarousel` now treats `42501` as success — honest, because 20 open reports means the photo was hidden on the first one and is already in the review queue. Same handling `CrowdPovModal` does for the submission cap
+- **The admin report list is bounded** — 5 rendered per card with a "+N more" note, and a 500-row backstop on the fetch
+
+### Added
+- **`greptile.json`** — review config so PR reviews start from the right assumptions. Without it the reviewer flags all five public forms for missing authorisation, not knowing there is no server and that `supabase/migrations/` is the security boundary. Six scoped rules cover the rest of the false-positive surface; one points the other way, flagging any genuinely private value that acquires a `VITE_` prefix and would be inlined into the public bundle
+
+### Notes
+- Both READMEs were rewritten. The root one described a project that no longer exists — Supabase as "future database migrations", and references to `update 0.rtf` and `indexV1.html`, both long deleted. `supabase/README.md` claimed the directory "will hold database migrations" when there were 36, and listed four bucket names that were never created
+- Greptile's first review ran against the pre-fix commit and so predates all of the above. Its four findings were verified independently before being acted on: the two adopted here were real, and two were declined — `stable` vs `volatile` on `crowd_pov_cleanup_token()` (defensible but near-zero payoff; the supporting reasoning about plan caching was also wrong), and the hardcoded project URL in the cron body (correct, but only worth fixing alongside a staging environment that does not exist yet)
+- Neither review caught what the other did. The three approval/removal bugs were found locally; the two policy gaps came from Greptile
+- The frontend changes and migration 037 are independent — either can ship without the other without breaking anything
+
+---
+
 ## v5.23.0 — Crowd POV: attendee photo submissions, admin review, public display, and reporting
 *Migrations 033–036 applied live via Supabase MCP; migrations 028–032 reconstructed as files*
 
