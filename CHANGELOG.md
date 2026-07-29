@@ -5,6 +5,15 @@ Format: newest version first.
 
 ---
 
+## v5.24.1 — Fix unreadable dropdown options across the site
+
+### Fixed
+- **Every `<select>` on the site rendered its open dropdown list unreadable — cream text on a white system background.** `<option>` elements had no background colour of their own (computed `rgba(0, 0, 0, 0)`), so while the closed control picked up the dark theme, the OS-painted open popup fell back to its default — white on Windows — against text still inherited from `--cream`. `color-scheme: dark` on `:root` doesn't prevent this once a control carries an author background. Reported against the Crowd POV event picker, but the same bug was live on all six `<select>` elements site-wide (the report-reason picker, and four in the admin dashboard). Fixed with one rule — `option { background-color: var(--panel); color: var(--cream); }` — rather than patching each instance
+- **The two visitor-facing selects (Crowd POV event picker, report-reason picker) also looked out of place even before opening** — the native OS arrow widget doesn't take styling. Both now use `appearance: none` with a hand-drawn gold chevron matching the rest of the site's iconography
+
+### Notes
+- The report-photo flag button was also queried in the same bug report as "not visible" — it is wired up and working, just easy to miss: it lives inside the lightbox next to the close button (shown only on Crowd POV photos, never official ones), and there were zero approved Crowd POV photos in the database at the time to click through to it. No code change needed there
+
 ## v5.24.0 — Crowd POV moderation hardening, code-review fixes, lint config repair
 *Migration 037 applied live via Supabase MCP. Findings from a local review plus Greptile's first PR review on [#1](https://github.com/kavapyramids/K-P-Website/pull/1)*
 
