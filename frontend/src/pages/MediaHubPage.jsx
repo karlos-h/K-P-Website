@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Download, Filter, Image, X, ChevronLeft, ChevronRight, Mail } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import EventCarousel from "../components/EventCarousel";
+import CrowdPovModal from "../components/CrowdPovModal";
 import { useCombinedGalleries } from "../hooks/useCombinedGalleries";
 
 const STORAGE_KEY = "kp_media_hub_email";
@@ -172,6 +173,9 @@ export default function MediaHubPage() {
   const [unlockedEmail, setUnlockedEmail] = useState(
     () => localStorage.getItem(STORAGE_KEY) || (localStorage.getItem(SKIP_KEY) ? "skipped" : null)
   );
+  // Lives outside the gate conditional below, so the submission flow works
+  // whether or not the visitor has unlocked the gallery.
+  const [crowdPovOpen, setCrowdPovOpen] = useState(false);
   const { galleries, loading } = useCombinedGalleries();
 
   // Flat fallback when Supabase has no grouped data yet
@@ -188,9 +192,12 @@ export default function MediaHubPage() {
         <a className="wordmark" href="/">K&amp;P</a>
         <div className="nav__links">
           <a href="/" style={{ color: "var(--muted)", fontSize: "0.85rem" }}>← Back to Site</a>
+          <button type="button" onClick={() => setCrowdPovOpen(true)}>Crowd POV</button>
           <a className="button button--gold nav__book" href="/#contact">Book Us</a>
         </div>
       </nav>
+
+      {crowdPovOpen && <CrowdPovModal onClose={() => setCrowdPovOpen(false)} />}
 
       {!unlockedEmail ? (
         <EmailGate onUnlock={setUnlockedEmail} />

@@ -7,6 +7,7 @@ import AdminEventsManager from '../components/AdminEventsManager'
 import AdminGalleryManager from '../components/AdminGalleryManager'
 import AdminMailingList from '../components/AdminMailingList'
 import AdminTrustedVenues from '../components/AdminTrustedVenues'
+import AdminCrowdReview from '../components/AdminCrowdReview'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -93,7 +94,7 @@ export default function AdminDashboard() {
       <div style={s.content}>
         {/* ── Tab selector ── */}
         <div style={s.tabRow}>
-          {[['enquiries', 'Enquiries'], ['events', 'Events'], ['gallery', 'Gallery'], ['photos', 'Photo Upload'], ['mailing', 'Mailing List'], ['venues', 'Venues']].map(([id, label]) => (
+          {[['enquiries', 'Enquiries'], ['events', 'Events'], ['gallery', 'Gallery'], ['photos', 'Photo Upload'], ['crowdpov', 'Crowd POV'], ['mailing', 'Mailing List'], ['venues', 'Venues']].map(([id, label]) => (
             <button
               key={id}
               className={`admin-tab-btn ${activeTab === id ? 'admin-tab-btn--active' : ''}`}
@@ -114,6 +115,10 @@ export default function AdminDashboard() {
 
         {activeTab === 'gallery' && (
           <AdminGalleryManager events={events} />
+        )}
+
+        {activeTab === 'crowdpov' && (
+          <AdminCrowdReview events={events} adminUserId={user?.id} />
         )}
 
         {activeTab === 'mailing' && (
