@@ -24,7 +24,7 @@ function EpkDownloadModal({ onClose }) {
           email: form.email,
           venue: form.venue || null,
         }]);
-      } catch (_) {
+      } catch {
         // Non-blocking — log failure silently
       }
     }

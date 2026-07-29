@@ -1,22 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { Download, Filter, Image, X, ChevronLeft, ChevronRight, Mail } from "lucide-react";
+import { useState } from "react";
+import { Image, Mail } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import EventCarousel from "../components/EventCarousel";
+import CrowdPovModal from "../components/CrowdPovModal";
 import { useCombinedGalleries } from "../hooks/useCombinedGalleries";
 
 const STORAGE_KEY = "kp_media_hub_email";
 // Set when a returning visitor skips the gate. No email means nothing to log,
 // so a skip never touches Supabase — it only needs to persist the unlock.
 const SKIP_KEY = "kp_media_hub_skipped";
-
-const MOCK_ASSETS = [
-  { id: 1, event_name: "Original Sin", event_date: "2025-03-15", category: "Club Night", photo_url: "/gallery/crowd-energy.svg", thumb_url: "/gallery/crowd-energy.svg" },
-  { id: 2, event_name: "Rolling Meadows Festival", event_date: "2025-01-20", category: "Festival", photo_url: "/gallery/festival.svg", thumb_url: "/gallery/festival.svg" },
-  { id: 3, event_name: "Fiji Tour", event_date: "2025-06-10", category: "International", photo_url: "/gallery/travel.svg", thumb_url: "/gallery/travel.svg" },
-  { id: 4, event_name: "Behind the Decks", event_date: "2025-04-05", category: "DJ Life", photo_url: "/gallery/dj-life.svg", thumb_url: "/gallery/dj-life.svg" },
-  { id: 5, event_name: "Freshers Week", event_date: "2025-02-28", category: "University", photo_url: "/gallery/freshers.svg", thumb_url: "/gallery/freshers.svg" },
-  { id: 6, event_name: "Wonderland Brisbane", event_date: "2026-06-27", category: "International", photo_url: "/gallery/brisbane.svg", thumb_url: "/gallery/brisbane.svg" },
-];
 
 function EmailGate({ onUnlock }) {
   const [email, setEmail] = useState("");
@@ -38,7 +30,7 @@ function EmailGate({ onUnlock }) {
     setLoading(true);
     try {
       await supabase.from("media_downloads").insert([{ email, accessed_at: new Date().toISOString() }]);
-    } catch (_) {
+    } catch {
       // Non-blocking — proceed even if Supabase isn't set up yet
     }
 
@@ -118,69 +110,14 @@ function EmailGate({ onUnlock }) {
   );
 }
 
-function Lightbox({ assets, index, onClose, onPrev, onNext }) {
-  const asset = assets[index];
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") onPrev();
-      if (e.key === "ArrowRight") onNext();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, onPrev, onNext]);
-
-  const handleDownload = async () => {
-    // Visitors who skipped the gate have no email — log the download without
-    // one rather than writing a placeholder into media_downloads.
-    const email = localStorage.getItem(STORAGE_KEY);
-    const row = { photo_id: asset.id, event_name: asset.event_name, downloaded_at: new Date().toISOString() };
-    if (email) row.email = email;
-    try {
-      await supabase.from("media_downloads").insert([row]);
-    } catch (_) {}
-
-    const link = document.createElement("a");
-    link.href = asset.photo_url;
-    link.download = `kp-${asset.event_name.toLowerCase().replaceAll(" ", "-")}.jpg`;
-    link.click();
-  };
-
-  return (
-    <div className="lightbox-overlay" onClick={onClose}>
-      <div className="lightbox" onClick={(e) => e.stopPropagation()}>
-        <button className="lightbox__close" onClick={onClose}><X size={20} /></button>
-        <button className="lightbox__prev" onClick={onPrev}><ChevronLeft size={24} /></button>
-        <img src={asset.photo_url} alt={asset.event_name} />
-        <button className="lightbox__next" onClick={onNext}><ChevronRight size={24} /></button>
-        <div className="lightbox__info">
-          <div>
-            <strong>{asset.event_name}</strong>
-            <span>{asset.event_date}</span>
-          </div>
-          <button className="button button--gold" onClick={handleDownload}>
-            <Download size={15} /> Download
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function MediaHubPage() {
   const [unlockedEmail, setUnlockedEmail] = useState(
     () => localStorage.getItem(STORAGE_KEY) || (localStorage.getItem(SKIP_KEY) ? "skipped" : null)
   );
+  // Lives outside the gate conditional below, so the submission flow works
+  // whether or not the visitor has unlocked the gallery.
+  const [crowdPovOpen, setCrowdPovOpen] = useState(false);
   const { galleries, loading } = useCombinedGalleries();
-
-  // Flat fallback when Supabase has no grouped data yet
-  const [flatAssets, setFlatAssets] = useState(MOCK_ASSETS);
-  useEffect(() => {
-    supabase.from("media_assets").select("*").order("sort_order").then(({ data }) => {
-      if (data && data.length > 0) setFlatAssets(data);
-    });
-  }, []);
 
   return (
     <div className="site-shell">
@@ -188,9 +125,12 @@ export default function MediaHubPage() {
         <a className="wordmark" href="/">K&amp;P</a>
         <div className="nav__links">
           <a href="/" style={{ color: "var(--muted)", fontSize: "0.85rem" }}>← Back to Site</a>
+          <button type="button" onClick={() => setCrowdPovOpen(true)}>Crowd POV</button>
           <a className="button button--gold nav__book" href="/#contact">Book Us</a>
         </div>
       </nav>
+
+      {crowdPovOpen && <CrowdPovModal onClose={() => setCrowdPovOpen(false)} />}
 
       {!unlockedEmail ? (
         <EmailGate onUnlock={setUnlockedEmail} />

@@ -372,7 +372,27 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   .hero__tagline { letter-spacing: .14em; }
   .hero__actions .button { width: min(280px, 100%); }
   .trusted__grid, .music__grid, .why-book__grid, .heritage__grid { grid-template-columns: 1fr; }
+  .trusted__grid {
+    max-height: 25rem;
+    overflow-y: auto;
+    padding-right: .5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) #111;
+  }
+  .trusted__grid::-webkit-scrollbar { width: 4px; }
+  .trusted__grid::-webkit-scrollbar-track { background: #111; }
+  .trusted__grid::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
   .trusted-card:last-child { grid-column: auto; }
+  .why-book__grid {
+    max-height: 34rem;
+    overflow-y: auto;
+    padding-right: .5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) #111;
+  }
+  .why-book__grid::-webkit-scrollbar { width: 4px; }
+  .why-book__grid::-webkit-scrollbar-track { background: #111; }
+  .why-book__grid::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
   .featured-event__content { align-items: flex-start; flex-direction: column; }
   .date-block { width: 100%; }
   .date-block span { flex: 1; min-width: 0; }
@@ -648,6 +668,151 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 .lightbox__close { top: 0.75rem; right: 0.75rem; }
 .lightbox__prev { top: 50%; left: 0.75rem; transform: translateY(-50%); }
 .lightbox__next { top: 50%; right: 0.75rem; transform: translateY(-50%); }
+
+/* ── Crowd POV submission modal (Media Hub) ── */
+/* Backdrop follows .lightbox-overlay; the card follows .email-gate__card.
+   Scrolls on short viewports because the form is taller than the lightbox. */
+.crowd-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.crowd-modal {
+  position: relative;
+  width: min(480px, 100%);
+  margin: auto;
+  padding: 2.5rem 2rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  text-align: center;
+}
+.crowd-modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(0,0,0,0.5);
+  border: none;
+  color: var(--cream);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+.crowd-modal__close:hover { background: var(--gold); color: #000; }
+.crowd-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--gold);
+  margin-bottom: 1.25rem;
+}
+.crowd-modal h2 { font-size: 1.75rem; margin-bottom: 0.75rem; }
+.crowd-modal > p { margin-bottom: 1.75rem; }
+.crowd-modal__form { display: grid; gap: 0.5rem; text-align: left; }
+.crowd-modal__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+.crowd-modal__field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 0.2s ease;
+}
+.crowd-modal__field:focus-within { border-color: var(--gold); }
+.crowd-modal__field-icon { flex-shrink: 0; color: var(--gold); }
+.crowd-modal__field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--cream);
+  font-size: 0.95rem;
+}
+.crowd-modal__field input::placeholder { color: var(--muted); }
+.crowd-modal__select,
+.crowd-modal__file {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--cream);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: 0;
+}
+.crowd-modal__select:focus,
+.crowd-modal__file:focus { border-color: var(--gold); }
+.crowd-modal__file::file-selector-button {
+  margin-right: 0.85rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgba(201, 168, 76, .55);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gold-light);
+  font-family: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.crowd-modal__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: pointer;
+}
+.crowd-modal__consent input {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+.crowd-modal__error { color: #e05c5c; font-size: 0.82rem; margin: 0.25rem 0 0; }
+.crowd-modal__form .button { margin-top: 1rem; width: 100%; }
+.crowd-modal__disclaimer {
+  font-size: 0.72rem;
+  color: var(--muted);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  text-align: left;
+}
+.crowd-modal__disclaimer svg { flex-shrink: 0; margin-top: 0.25rem; }
+.crowd-modal__done h2 { font-size: 1.5rem; }
+.crowd-modal__done p { margin-bottom: 1.75rem; }
 
 /* ── Video Cards (used by the Watch carousel) ── */
 .video-card { display: flex; flex-direction: column; gap: 0; }
@@ -982,8 +1147,92 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 .ec-lightbox__next:hover { color: var(--gold); }
 .ec-lightbox__close { position: absolute; top: 1.5rem; right: 1.5rem; }
 
+/* Report control — only rendered for Crowd POV photos, sits beside the close
+   button. Muted by default so it never competes with the photo itself. */
+.ec-lightbox__report {
+  position: absolute;
+  top: 1.5rem;
+  /* Clear of the close button (right:1.5rem, ~40px wide) with enough gap that
+     the two aren't mis-tapped on a touch screen. */
+  right: 4.75rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, opacity 0.2s;
+}
+.ec-lightbox__report:hover { color: var(--gold); }
+.ec-lightbox__report--blocked { opacity: 0.4; }
+
+.ec-report {
+  margin-top: 0.85rem;
+  padding: 1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  display: grid;
+  gap: 0.6rem;
+  max-width: 420px;
+}
+.ec-report form { display: grid; gap: 0.6rem; }
+.ec-report__label {
+  color: var(--gold);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ec-report__select,
+.ec-report__details {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  color: var(--cream);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: 0;
+}
+.ec-report__details { resize: vertical; }
+.ec-report__select:focus,
+.ec-report__details:focus { border-color: var(--gold); }
+.ec-report__submit {
+  justify-self: start;
+  padding: 0.55rem 1.2rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--gold);
+  color: #090909;
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.ec-report__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.ec-report__error { color: #e05c5c; font-size: 0.78rem; margin: 0; }
+.ec-report__fineprint,
+.ec-report__note,
+.ec-report__done {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  margin: 0;
+}
+.ec-report__done { color: var(--gold); }
+
 @media (max-width: 640px) {
   .ec-lightbox { grid-template-columns: 36px 1fr 36px; padding: 1rem 0.25rem; }
+  /* No `right` override here on purpose: the close button sits at right:1.5rem
+     and is ~34px wide, so anything under 3.65rem overlaps it. 4rem clears it
+     at every width. */
 }
 
 /* ── Event Carousel ── */
@@ -1228,6 +1477,42 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 .carousel__external-grid-link:hover .carousel__external-grid-cta {
   border-color: var(--gold);
 }
+
+/* Crowd POV — approved visitor submissions, shown under the official strip.
+   Deliberately a still grid rather than a second drifting carousel, so the
+   difference from the hired photographer's set reads at a glance. */
+.carousel__crowd {
+  border-top: 1px solid var(--line);
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+.carousel__crowd-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  color: var(--gold);
+}
+.carousel__crowd-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.carousel__crowd-note {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.carousel__crowd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+/* A header with nothing to expand into (crowd-photos-only events) */
+.event-carousel__header--static { cursor: default; }
 
 /* External-only card (no native photos) */
 .event-carousel--external-only .event-carousel__header--static {

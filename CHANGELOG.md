@@ -5,6 +5,89 @@ Format: newest version first.
 
 ---
 
+## v5.24.0 — Crowd POV moderation hardening, code-review fixes, lint config repair
+*Migration 037 applied live via Supabase MCP. Findings from a local review plus Greptile's first PR review on [#1](https://github.com/kavapyramids/K-P-Website/pull/1)*
+
+### Fixed
+- **A failed approval could leave a visitor's photo publicly reachable, permanently.** `handleApprove` moved the file into the public bucket before inserting the `crowd_photos` row, and bailed out on insert failure with the file left where it was — published, with nothing in the database recording an approval. Worse, it wedged every retry: the move looks in the pending bucket, and the file was no longer there. The move is now rolled back on insert failure, restoring the exact pre-click state. If the rollback itself fails, the error names the bucket and path so it can be cleaned up by hand
+- **The step-4 failure message in approval was actively misleading.** By that point the photo is genuinely live and only its review status failed to save, but the message read like the approval hadn't happened — inviting a second click that would publish a duplicate. It now says so explicitly
+- **"Remove Permanently" could report success while deleting nothing.** When `storagePathFromUrl` couldn't parse a photo's URL it skipped the storage delete entirely and carried on to drop the database record — leaving the file served from storage with the only record pointing at it now gone. This is the takedown path for a no-consent report, so it now aborts before touching the database and leaves the photo hidden
+- **Crowd-only event cards contradicted themselves.** An event with crowd photos but no native photos and no external gallery — the synthetic group `useCombinedGalleries` creates — rendered "Photos coming soon" directly above a full Crowd POV grid. The empty state now only shows when there is genuinely nothing to display
+- **`npm run lint` reported 13 errors, 6 of them false.** `motion` and `Icon` are used, but only inside JSX, and base `no-unused-vars` doesn't track JSX identifiers — deleting those imports would have broken the build. The `varsIgnorePattern: "^[A-Z_]"` had been masking this by accident, hiding every capitalised component import so that only lowercase JSX identifiers ever surfaced. Added `eslint-plugin-react` and enabled `react/jsx-uses-vars`, which fixes the cause and makes the remaining reports trustworthy. The genuine errors are gone too, including a dead cluster in `MediaHubPage` — an orphaned `Lightbox`, `MOCK_ASSETS`, and a `media_assets` query that ran on every page load and rendered nowhere
+
+### Changed
+- **Reports are now capped at 20 open per photo, in the database.** **Migration 037** adds `private.crowd_photo_report_count()` to the insert policy's `WITH CHECK`. The client-side guard in `EventCarousel` was always documented as a speed bump rather than a boundary, and it is one: the anon key ships in the bundle by design, so anyone can POST to `crowd_photo_reports` directly and never load the page. `crowd_photos` ids are publicly readable, so they are trivially enumerable — an unbounded insert path plus an admin panel that rendered every report it fetched meant a public form could be used to make the moderation queue unusable. The count is of **open** reports only, mirroring how `crowd_submission_count` ignores `'rejected'`: once an admin dismisses a round the slate clears, so a photo is not permanently un-reportable for having survived one. Deliberately given no public wrapper — the frontend has no need to ask how many people reported a photo, and answering would leak moderation state
+- **Anon uploads to `crowd-pov-pending` must now match `{uuid}/{uuid}.jpg`.** The policy from migration 033 checked only the bucket, so any key was writable. The hourly sweep removed unreferenced files, but that left an hour for junk to accumulate at up to 15 MB per object. Verified before writing: `events.id` is a `uuid`, so the pattern matches genuine submissions — had it been a `bigint` this would have silently rejected every upload
+- **Hitting the report cap no longer shows a visitor raw Postgres.** A capped insert surfaces as a bare RLS violation, so `EventCarousel` now treats `42501` as success — honest, because 20 open reports means the photo was hidden on the first one and is already in the review queue. Same handling `CrowdPovModal` does for the submission cap
+- **The admin report list is bounded** — 5 rendered per card with a "+N more" note, and a 500-row backstop on the fetch
+
+### Added
+- **`greptile.json`** — review config so PR reviews start from the right assumptions. Without it the reviewer flags all five public forms for missing authorisation, not knowing there is no server and that `supabase/migrations/` is the security boundary. Six scoped rules cover the rest of the false-positive surface; one points the other way, flagging any genuinely private value that acquires a `VITE_` prefix and would be inlined into the public bundle
+
+### Notes
+- Both READMEs were rewritten. The root one described a project that no longer exists — Supabase as "future database migrations", and references to `update 0.rtf` and `indexV1.html`, both long deleted. `supabase/README.md` claimed the directory "will hold database migrations" when there were 36, and listed four bucket names that were never created
+- Greptile's first review ran against the pre-fix commit and so predates all of the above. Its four findings were verified independently before being acted on: the two adopted here were real, and two were declined — `stable` vs `volatile` on `crowd_pov_cleanup_token()` (defensible but near-zero payoff; the supporting reasoning about plan caching was also wrong), and the hardcoded project URL in the cron body (correct, but only worth fixing alongside a staging environment that does not exist yet)
+- Neither review caught what the other did. The three approval/removal bugs were found locally; the two policy gaps came from Greptile
+- The frontend changes and migration 037 are independent — either can ship without the other without breaking anything
+
+---
+
+## v5.23.0 — Crowd POV: attendee photo submissions, admin review, public display, and reporting
+*Migrations 033–036 applied live via Supabase MCP; migrations 028–032 reconstructed as files*
+
+### Added
+- **Crowd POV — event attendees can submit their own photos, which appear on the site only after review.** **Migration 033** lays the foundation: `crowd_submissions` (the moderation record, holding the uploader's email — never publicly readable, anon gets INSERT only with no SELECT policy at all) and `crowd_photos` (the public-facing record, populated only on approval), plus two storage buckets mirroring that split — private `crowd-pov-pending` for submissions awaiting review, public `crowd-pov` for approved photos. Both allowlist `jpeg/png/webp` only: no SVG (stored-XSS risk) and no GIF, deliberately stricter than `event-photos`. `mailing_list` gains a `crowd_pov` source with its own scoped anon INSERT policy, separate from the existing `media_hub` one
+- **Visitor submission flow** (`CrowdPovModal.jsx`, opened from a new "Crowd POV" button in the Media Hub nav — placed outside the email-gate conditional so it works whether or not the gallery has been unlocked). Mandatory email, a past-events-only picker, file input, and a required consent checkbox; the submit button stays disabled until every field is filled. Same honeypot pattern as the other public forms
+- **Every submitted photo is stripped of metadata and normalised before it leaves the browser** (`lib/processImage.js`). Phone cameras embed GPS coordinates, so a photo taken at an afterparty can carry someone's home address — re-encoding through a canvas drops all EXIF, since canvas has no way to carry it through. The same pass converts HEIC (which iPhones shoot by default, and which the bucket's MIME allowlist rejects) via `heic-to`, and caps the longest edge at 2000px. EXIF orientation is baked into the pixels first, so stripping the metadata doesn't leave portrait photos lying on their side. Verified byte-for-byte: a 3000×2000 test JPEG carrying real GPS coordinates came out at 2000×1333 with the APP1 segment gone, and the uploaded object matched that output exactly
+- **Admin review queue** — a new "Crowd POV" tab in the dashboard listing pending submissions oldest-first, each with a signed-URL preview (the pending bucket is private, so a public URL won't work). Approve moves the file across to the public bucket, creates the `crowd_photos` row, and marks the submission approved; Reject deletes the file immediately and records an admin-only reason. Both order their steps so the file is dealt with *before* the database, so a half-failed action can never leave a record pointing at a file that isn't there
+- **Approved photos now appear publicly** in a distinct "Crowd POV" sub-section under each event's official carousel strip — a still grid rather than a second drifting strip, so the difference from the hired photographer's set reads at a glance. Clicking opens the existing lightbox, with its own index so arrow-keying through crowd photos never wanders into the official set
+- **Visitors can report a published crowd photo** as offensive or posted without their permission. **Migration 036** adds `crowd_photos.hidden`, switches the public read policy to `using (hidden = false)`, and adds `crowd_photo_reports` with an `after insert` trigger that hides the photo immediately. Hiding is soft and reversible, which is what makes it safe to act on a single anonymous report — someone in a photo they never consented to shouldn't have to wait for a human, and the cost of being wrong is a photo temporarily missing rather than destroyed. The admin tab gained a second section listing hidden photos with all their reports grouped onto one card, offering Restore (photo reappears, reports dismissed) or Remove Permanently (file deleted, record dropped, original submission marked `removed` — distinct from `rejected`, which would wrongly imply it never went live)
+- **`LICENSES.md`** — attribution for `heic-to` (LGPL-3.0), the one dependency whose licence carries obligations the permissive ones don't. It's used unmodified, loaded as a separate chunk via dynamic `import()`, and not statically linked
+
+### Changed
+- **`useCombinedGalleries` now fetches every event, not just those with `photo_gallery_url` set.** The old filter would have silently dropped any event whose only photos were crowd submissions, leaving them invisible on the page forever. Groups now also carry the event's real `event_id`, and a synthetic group is created for events that have crowd photos but no native photos and no external gallery — the case that previously never produced a card at all. The guard is deliberate (`external || crowdPhotos.length`): without it, fetching all events would spawn an empty card for every gig ever played
+- **Privacy policy covers Crowd POV** — a new "Photo Submissions" section explaining what's collected, that photos are reviewed before publishing, that location data is stripped, and how to ask for a photo you appear in to be taken down. The mailing-list consent sentence now also names Media Hub unlock, which had been adding people since v5.20.0 without being listed
+
+### Fixed
+- **Migrations 028–032 existed only in the live database and were never saved as files.** They were applied by hand on 2026-07-28 while debugging, so the repo ended at 027 while production had five more. Reconstructed verbatim from `supabase_migrations.schema_migrations` (not inferred from live state) and committed. They document a diagnostic sequence chasing why admin photo uploads failed: the root cause, found in **032**, was that migration 019 dropped *every* SELECT policy on `storage.objects` including the admin's — and Postgres needs an applicable SELECT policy for `INSERT ... RETURNING` to return the inserted row, which Supabase Storage relies on to confirm an upload. Two of the five (**029**, **030**) are diagnostic-only and carry explicit warnings: they leave the upload policy pointing at a throwaway function and hardcoded to `true` respectively, and only make sense as part of the sequence that **032** closes
+- **Orphaned uploads no longer accumulate in `crowd-pov-pending`.** The modal uploads before inserting the submission row (the reverse would leave the review queue full of submissions whose file never arrived), so anything failing in between — most often the 5-per-email-per-event cap — stranded a file nothing referenced. **Migration 034** adds a public RPC wrapper over the cap check so the frontend can stop *before* uploading, and **migration 035** schedules an hourly sweep for whatever still slips through: `pg_cron` → `pg_net` → a new `crowd-pov-cleanup` Edge Function. It has to be an Edge Function because Supabase's `storage.protect_delete()` trigger blocks `delete from storage.objects` outright, and its escape hatch is a trap — it removes the metadata row while leaving the bytes orphaned in the backing store, turning a visible orphan into an invisible one. Real deletion needs the Storage API and the service-role key, which the Edge runtime supplies without it ever being written down
+
+### Notes
+- The cron→function hop authenticates with a random token generated *inside* the database into Supabase Vault, rather than the service-role key the docs suggest — it's scoped to this one operation, and its plaintext never appears in this repo, in an environment variable, or in the cron job body
+- `public.crowd_submission_count` is deliberately callable by `anon` and shows up as two new security-advisor warnings. It's a narrow, intentional hole in an otherwise unreadable table: someone who already knows an email address can learn whether it submitted to a given event. It's a confirmation oracle, not an enumeration one — it can't list addresses or read any other column
+- `pg_net` must be installed into the `extensions` schema; creating it without an explicit schema lands it in `public` and trips the `extension_in_public` lint, and it doesn't support `ALTER EXTENSION ... SET SCHEMA`, so fixing that means a drop and recreate
+- The per-browser report limits (5 per 24h, and one report per photo) are `localStorage`-backed and trivially bypassed by clearing storage or switching browser. That's expected — they're a speed bump against casual abuse, not a security boundary. What actually makes single-click hiding safe is that it's reversible
+- Supabase security advisors otherwise report the same pre-existing findings as before this release
+- Admin-side actions in this release were verified as data sequences rather than UI clicks (no admin session is available to this tooling); the storage-delete step of "Remove Permanently" in particular still wants a manual click-through
+
+---
+
+## v5.22.0 — Mobile capped scroll for Trusted Venues + For Promoters, hero/Photo Hub copy polish
+
+### Changed
+- **Trusted Venues and For Promoters now scroll inside their own box on mobile** instead of running the page long. Below 640px — the breakpoint where both grids collapse to a single column — `.trusted__grid` caps at `25rem` and `.why-book__grid` at `34rem`, each with `overflow-y: auto` and a thin gold scrollbar styled for both WebKit (`::-webkit-scrollbar`, 4px) and Firefox (`scrollbar-width` / `scrollbar-color`). Both rules live inside the existing `max-width: 640px` block, so the two- and multi-column layouts above that breakpoint are untouched
+- **Hero tagline trimmed to "to the World"** (previously "CHCH to the World")
+- **Homepage Photo Hub blurb** now reads "Browse and download photos from our latest events"
+
+### Added
+- `docs/trusted-venues-scroll-prompt.md` and `docs/why-book-scroll-prompt.md` — the working briefs behind the two scroll changes, kept in the repo alongside the code they produced
+
+---
+
+## v5.21.1 — Media Hub source label, EPK copy polish, drop stale residency
+
+### Fixed
+- **The Mailing List tab showed the raw `media_hub` database value** in its Source column, leaking a schema detail into the admin UI. It now renders as "Media Hub"; every other source (`manual`, `humanitix`) still displays verbatim
+
+### Changed
+- **EPK copy de-hyphenated throughout** — "Open-format" → "Open format", "high-energy" → "high energy", "Crowd-reading" → "Crowd reading", "Peak-time" → "Peak time". The em dash introducing the heritage explanation became a comma, and "started in high school in 2018" is now simply "started in 2018"
+- **The EPK bio no longer names specific weekly residencies.** "Kong Bar on Saturdays, Original Sin on Fridays" became "resident of the strip on Friday and Saturdays", so the page doesn't go stale each time a residency changes hands
+
+### Removed
+- **The "Original Sin — Fridays" residency** from `siteData.js`, leaving Kong Bar on Saturdays as the only live entry — the same staleness the EPK rewrite above addresses, at the data layer
+
+---
+
 ## v5.21.0 — Media Hub gate skip + pill redesign, nav typography, honest photo counts
 
 ### Added

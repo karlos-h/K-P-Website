@@ -1,9 +1,9 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Mail, Shield, Database, Users, ShieldCheck, BarChart3, ScrollText } from "lucide-react";
+import { Mail, Shield, Database, Users, ShieldCheck, BarChart3, ScrollText, Camera } from "lucide-react";
 import { revealProps } from "../lib/motion";
 
 // Set manually — only update this string when the policy content actually changes.
-const LAST_UPDATED = "8 July 2026";
+const LAST_UPDATED = "29 July 2026";
 
 const THIRD_PARTIES = [
   { name: "Supabase", role: "Hosting, database, and file storage for this website." },
@@ -72,6 +72,7 @@ export default function PrivacyPolicyPage() {
             <li>Submit a booking enquiry through this site</li>
             <li>Request our EPK (Electronic Press Kit)</li>
             <li>Unlock the Media Hub photo gallery</li>
+            <li>Submit a photo through Crowd POV, our attendee photo-sharing feature</li>
             <li>Purchase a ticket to one of our shows through Humanitix</li>
           </ul>
         </Section>
@@ -80,7 +81,9 @@ export default function PrivacyPolicyPage() {
         <Section icon={Shield} label="Purpose" title="Why We Collect It" dark>
           <p>
             We use this information to respond to enquiries and bookings, and to deliver the
-            content you requested (such as the EPK or event photos). Only with your consent do we
+            content you requested (such as the EPK or event photos). If you submit a photo through
+            Crowd POV, we also use your email and the photo to review the submission before
+            deciding whether to publish it. Only with your consent do we
             use it to send occasional updates about upcoming shows via our mailing list.
           </p>
         </Section>
@@ -89,13 +92,36 @@ export default function PrivacyPolicyPage() {
         <Section icon={Mail} label="Marketing" title="Mailing List &amp; Marketing">
           <p style={{ marginBottom: "1rem" }}>
             We only add people to our mailing list with consent — either through direct sign-up,
-            or, for ticket purchasers, an opt-in captured at checkout through Humanitix. You can
+            unlocking the Media Hub photo gallery, submitting a photo through Crowd POV, or, for
+            ticket purchasers, an opt-in captured at checkout through Humanitix. You can
             ask to be removed at any time by emailing{" "}
             <a href="mailto:kavapyramids@gmail.com" style={{ color: "var(--gold)" }}>kavapyramids@gmail.com</a>.
           </p>
           <p>
             Any future marketing emails will identify us clearly and include an easy way to
             unsubscribe, per the Unsolicited Electronic Messages Act 2007.
+          </p>
+        </Section>
+
+        {/* Crowd POV photo submissions */}
+        <Section icon={Camera} label="Crowd POV" title="Photo Submissions" dark>
+          <p style={{ marginBottom: "1rem" }}>
+            Crowd POV lets people who attended our events submit their own photos to be
+            published on this website. If you submit a photo, we collect your email
+            (added to our mailing list, see above) and the photo itself.
+          </p>
+          <p style={{ marginBottom: "1rem" }}>
+            Submitted photos are reviewed by us before publishing — nothing goes live
+            automatically. By submitting a photo, you're confirming it's yours to
+            share and that you're happy for us to publish it on this website; we
+            don't use submitted photos anywhere else without asking first. We also
+            remove location data embedded in submitted photos before publishing them.
+          </p>
+          <p>
+            If you appear in a photo someone else submitted and would like it taken
+            down, contact us at{" "}
+            <a href="mailto:kavapyramids@gmail.com" style={{ color: "var(--gold)" }}>kavapyramids@gmail.com</a>{" "}
+            and we'll remove it.
           </p>
         </Section>
 
