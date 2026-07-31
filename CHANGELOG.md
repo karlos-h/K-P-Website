@@ -5,6 +5,65 @@ Format: newest version first.
 
 ---
 
+## v5.26.1 — RotatingPhotoGrid review fixes: viewport-gated rotation, focus trap, dead CSS
+*Follow-up pass on v5.26.0. No visual or behavioural change to the design itself.*
+
+### Fixed
+- **Rotation armed before the grid had ever been on screen.** The `ENTRANCE_MS` timer started on mount, but the tiles reveal via `whileInView`. The gallery is the seventh of ten sections on the home page, so the timer always expired during initial page load — by the time a visitor scrolled down and the entrance began, rotation was already running and swapping tiles mid-fade. Exactly the interleaving the delay existed to prevent. `started` is now gated on `useInView(gridRef, { once: true, amount: 0.2 })`, with the entrance delay running from that moment; a visitor who never scrolls to the gallery never starts it at all
+  - The `amount` matches the `viewport` config in `revealProps` so the entrance and the rotation clock key off the same threshold
+  - `ENTRANCE_MS` corrected 1000 → 1200. The longest tile stagger is `8 × 0.06s = 0.48s` plus the `0.7s` reveal = 1180ms, which the old value did not cover
+  - `slots` is now seeded during the first render instead of in an effect. `useInView` only ever observes what its ref points at when its effect runs, and the previous empty-first-render path returned `null`, leaving it with no element to watch and rotation permanently unarmed
+- **A pause landing mid-preload silently burned a slot's turn.** Both cursors advanced before `preload()` was awaited, but the effect cleanup discards the pending `setSlots`. A pointer entering the grid — or the lightbox opening, or the tab hiding — while an image was in flight spent that slot's place in the round-robin and consumed a photo from the pool without either ever reaching the screen, quietly making the "every slot gets its turn" guarantee untrue. Candidate and target slot are now worked out as locals and the cursors commit inside the `.then()`, only when not cancelled. The `swapping` re-entrancy guard is unchanged
+- **`Tab` walked out of an open lightbox** into the page behind it, where every link and button was still reachable but no longer visible. Focus now starts on the close button and `Tab`/`Shift+Tab` cycle within the dialog
+
+### Added
+- **`frontend/src/lib/focusTrap.js`** — a single `trapTab(event, container)` helper rather than the same twenty lines in two files. It re-reads the container on each keypress instead of caching, because the overlays mount and unmount controls while open, and its selector excludes `tabindex="-1"` so both lightboxes' honeypot inputs stay unreachable
+
+### Changed
+- **`EventCarousel`'s lightbox got the same focus trap.** The brief left this optional depending on whether it could be done without restructuring — it could: two refs, one call in the existing `onKey`, and a mount-time focus effect, with no change to the crowd-photo reporting flow. The `trapTab` call sits ahead of that handler's INPUT/TEXTAREA/SELECT guard so `Tab` stays contained while someone is typing a report
+
+### Removed
+- **The dead `.lightbox` block in `global.css`** (`.lightbox-overlay`, `.lightbox`, `.lightbox__info`, `.lightbox__close/__prev/__next`). v5.26.0 assumed it belonged to the Media Hub and left it alone; it doesn't. `MediaHubPage` renders `EventCarousel`, which uses `.ec-lightbox` throughout, and no component anywhere renders those class names — verified by grep before deleting. `.email-gate__card`, referenced by a neighbouring comment, is still live and in use by `MediaHubPage`
+  - The `.crowd-modal-overlay` comment that pointed at `.lightbox-overlay` has been reworded. It was describing visual parity, not cascade — that rule declares its own `position`/`inset`/`background`/`z-index` and never inherited anything
+- **The `ResizeObserver` backstop in `useSlotCount`.** It was added in v5.26.0 against a preview-pane artifact, not real browser behaviour, and as written fired on every root box change — lazy images landing, the scroll-lock toggling, mobile browser chrome collapsing. No reproducible real-browser case was found where the `matchMedia` listeners miss a breakpoint change, so it's gone. The two `change` listeners plus the initial `update()` (which corrects a stale first-render read) remain
+
+### Notes
+- Verified against the running dev server in real Chrome, driven through the extension. Parked above the gallery with the tab-hidden gate neutralised, **41 seconds produced zero swaps** — roughly fourteen rotation intervals, where the old build would have armed one second after mount. Scrolled into view, rotation started and ran cleanly: across **126 seconds and 32 swaps, every completed cycle covered all nine slots exactly once** — `2,8,0,5,3,4,6,7,1` / `8,1,0,4,5,3,6,2,7` / `0,1,3,2,8,6,7,5,4` — including the cycle straddling a 26-second hover interruption, which is the regression Fix 2 targets. Hover held produced 1 swap where ~7 were due
+- Focus trap verified in both lightboxes: focus lands on Close at open, `Tab` from the last control wraps to Close, `Shift+Tab` from Close wraps to Next, focus parked outside is pulled back in, and Escape still closes with scroll unlocked and focus restored to the triggering tile
+- Media Hub lightbox re-checked after the CSS deletion — still `position: fixed`, inset 0, `z-index: 250`, 78vh `contain`, gold caption, all three controls
+- Two things could not be exercised and are worth a glance: **dragging a real window across the 1024px and 640px breakpoints**, and **DevTools → Rendering → emulate `prefers-reduced-motion`**. Browser access is granted read-only, so the window can't be resized or DevTools opened from here. Fresh mounts at 1280/800/500 still give 9/6/4 tiles with exact tiling and no holes, and the reduced-motion path is a single guard in `canRotate`, but neither live transition was observed
+- One known edge, not worth code: `revealProps` observes each tile while `useInView` observes the container, so scrolling to just the top of the grid can arm rotation while the bottom row has yet to reveal. A swap into an unrevealed tile is invisible and shows a photo when it does reveal
+
+---
+
+## v5.26.0 — Rotating mosaic photo grid on the home page gallery
+
+### Added
+- **`frontend/src/components/RotatingPhotoGrid.jsx`** — the home page gallery is now a fixed editorial mosaic that slowly cycles the entire event photo archive through it. Nine slots on desktop, six on tablet, four on mobile. The layout never moves; only the photo inside a slot changes, one slot every 2.8s, crossfading over 700ms
+  - **Round-robin slot order, not random.** Picking a slot at random lets one tile sit untouched for minutes while another flickers. Every slot takes its turn, then the order is reshuffled so the pattern never becomes readable
+  - **Preload before swap.** The next `thumb_url` is resolved through `new Image()` and the crossfade only starts on load, with a 1.5s timeout fallback and `onerror` treated as loaded. Without it a slow image leaves a tile blank mid-fade; a broken URL costs one dull swap rather than stalling the wall
+  - **A visible-ID `Set` gates candidates**, so the same photo can never occupy two slots at once — it reads as a bug when it happens
+  - Rotation pauses on pointer-over, while the lightbox is open, and on `document.hidden`, and is disabled outright under `prefers-reduced-motion` or when the pool can't outnumber the slots. It also waits out the ~1s entrance stagger so tiles aren't swapping while still fading in
+  - Tiles are `<button>`s with an `aria-label`; clicking opens a lightbox over the whole shuffled pool with arrow-button, `←`/`→` and `Escape` navigation, click-backdrop-to-close, body scroll lock, and focus returned to the triggering tile
+- **`.photo-grid` styles in `global.css`**, carrying over the card treatment from the `.gallery-card` rules they replace — `#191919` border, `#111` backing, scrim gradient, gold uppercase micro-label, Playfair event name, hover `saturate(1.2)` + `scale(1.045)`
+
+### Changed
+- **`HomePage.jsx` renders `<RotatingPhotoGrid>` instead of `<EventCarousel group={galleries[0]}>`.** The old gallery section only ever showed the single newest event; the grid draws from every event at once. It reuses the existing `useEventGalleries()` result flattened into one pool — no second Supabase query was added. When the pool is empty the section now renders nothing rather than falling back to placeholder art. `MediaHubPage` still renders `EventCarousel` per event, unchanged
+
+### Removed
+- **`MediaGallery.jsx`, `GALLERY_ITEMS`, and the six `public/gallery/*.svg` placeholders.** These were the pre-Supabase stand-in gallery, reachable only when no photos had been uploaded — a state that no longer has a fallback. The `.gallery__grid` / `.gallery-card` CSS and their two responsive blocks went with them
+- The `.lightbox` rules that shipped alongside `.gallery-card` were removed as part of the same block. They had been dead in practice for a while: `.lightbox` is declared a second time further down `global.css` for the Media Hub, and that later block overrides `position: fixed` with `position: relative`, so the original full-screen version no longer resolved. The Media Hub block itself is untouched
+
+### Notes
+- The new lightbox deliberately reuses EventCarousel's `.ec-lightbox` classes rather than `.lightbox`, for the override reason above — `.lightbox__previous` was also referenced by `MediaGallery` but never defined (the rule is `.lightbox__prev`)
+- The shuffled pool is held in a ref keyed on the source array, not `useMemo`. A shuffle isn't idempotent, so StrictMode's double render produced two different orders, and the second one landing mid-mount left every tile crossfading out of a photo it had never shown
+- The grid's breakpoints (1024/640) don't line up with the page's (900/640), so its media queries live with the component rather than in the shared blocks. `:nth-child(n)` keeps the overrides level with the desktop spans — a media query alone wouldn't outrank them
+- Six half-width tablet slots with a double-height first one leave half of the last row empty, so the closing tile spans full width to seal it. Desktop and mobile tile their grids exactly with no such gap
+- Slot count is driven by `matchMedia` with a `ResizeObserver` on the document element as a backstop, since a stale count against live CSS spans would tile the mosaic with holes in it
+- Verified in the running app: 9/6/4 tiles with exact tiling at each breakpoint, one-slot-at-a-time rotation with zero duplicate photos across 12 samples, pause held for 5 ticks under hover, tab-hidden pause, lightbox open/arrow-nav/Escape/backdrop-close with scroll lock and focus restore, and no React key warnings or console errors. Live breakpoint *switching* could not be exercised — the preview pane swaps the viewport without running rendering steps, so no `resize`, matchMedia `change`, or ResizeObserver callback is delivered; each breakpoint was checked via a fresh mount instead. `prefers-reduced-motion` is likewise not togglable there and was verified by code path only
+
+---
+
 ## v5.25.0 — Compress admin event photo uploads
 
 ### Fixed

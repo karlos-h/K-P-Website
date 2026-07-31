@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X, Images, Calendar, ExternalLink, Users, Flag } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { trapTab } from "../lib/focusTrap";
 import { hoverLift, revealProps, EASE } from "../lib/motion";
 
 // ── Report throttling ─────────────────────────────────────────────────────────
@@ -51,6 +52,8 @@ const REPORT_REASONS = [
 function Lightbox({ photos, startIndex, onClose, reportable = false }) {
   const [index, setIndex] = useState(startIndex);
   const move = (dir) => setIndex((i) => (i + dir + photos.length) % photos.length);
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState("offensive");
@@ -64,6 +67,9 @@ function Lightbox({ photos, startIndex, onClose, reportable = false }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
+      // Ahead of the typing guard below: Tab must stay contained whether focus
+      // is on the arrows or inside the report form.
+      trapTab(e, dialogRef.current);
       // Don't let arrow keys flip photos while someone is typing their report.
       const tag = e.target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
@@ -73,6 +79,9 @@ function Lightbox({ photos, startIndex, onClose, reportable = false }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Focus starts inside the dialog so the trap has somewhere to hold it.
+  useEffect(() => { closeRef.current?.focus(); }, []);
 
   // Moving to another photo should never carry a half-typed report with it.
   useEffect(() => {
@@ -138,13 +147,14 @@ function Lightbox({ photos, startIndex, onClose, reportable = false }) {
 
   return (
     <div
+      ref={dialogRef}
       className="ec-lightbox"
       role="dialog"
       aria-modal="true"
       aria-label={photo.event_name}
       onClick={onClose}
     >
-      <button className="ec-lightbox__close" onClick={onClose} aria-label="Close"><X /></button>
+      <button ref={closeRef} className="ec-lightbox__close" onClick={onClose} aria-label="Close"><X /></button>
       {reportable && (
         <button
           className={`ec-lightbox__report${blocked ? " ec-lightbox__report--blocked" : ""}`}

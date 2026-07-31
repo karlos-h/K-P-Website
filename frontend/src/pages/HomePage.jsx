@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -17,15 +17,13 @@ import {
   Youtube,
   Zap,
 } from "lucide-react";
-import MediaGallery from "../components/MediaGallery";
-import EventCarousel from "../components/EventCarousel";
+import RotatingPhotoGrid from "../components/RotatingPhotoGrid";
 import { useEventGalleries } from "../hooks/useEventGalleries";
 import WatchCarousel from "../components/WatchCarousel";
 import SocialFeed from "../components/SocialFeed";
 import TikTokFeed from "../components/TikTokFeed";
 import {
   BOOKING_FEATURES,
-  GALLERY_ITEMS,
   GENRES,
   HIGHLIGHT_REEL_EMBED,
   LINKTREE_URL,
@@ -146,6 +144,9 @@ function HomePage() {
   const highlightReelRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
   const { galleries } = useEventGalleries();
+  // Flattened from the same hook the gallery section already used — the grid
+  // rotates across every event, not one at a time, so it needs the whole pool.
+  const photoPool = useMemo(() => galleries.flatMap((group) => group.photos), [galleries]);
 
   // Supabase data
   const [events, setEvents] = useState([]);
@@ -648,10 +649,7 @@ function HomePage() {
               title="On the Road"
               copy="Crowds, travel, festivals, and the moments between sets."
             />
-            {galleries.length > 0
-              ? <EventCarousel group={galleries[0]} delay={0.1} />
-              : <MediaGallery items={GALLERY_ITEMS} />
-            }
+            {photoPool.length > 0 && <RotatingPhotoGrid photos={photoPool} />}
             <motion.div className="media-hub-cta" {...revealProps(0, prefersReducedMotion)}>
               <div>
                 <p className="section-label">Photo Hub</p>

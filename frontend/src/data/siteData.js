@@ -8,16 +8,6 @@ export const TIMELINE = [
   { year: "2026", title: "The World", desc: "Brisbane and Wonderland take the movement international." },
 ];
 
-// Replace these SVG placeholders with optimized JPG, WebP, or MP4 files in /public/gallery/.
-export const GALLERY_ITEMS = [
-  { title: "Original Sin", category: "Crowd Energy", type: "image", src: "/gallery/crowd-energy.svg" },
-  { title: "Behind the Decks", category: "DJ Life", type: "image", src: "/gallery/dj-life.svg" },
-  { title: "Fiji Tour", category: "Travel", type: "image", src: "/gallery/travel.svg" },
-  { title: "Rolling Meadows", category: "Festivals", type: "image", src: "/gallery/festival.svg" },
-  { title: "Freshers", category: "Crowd Energy", type: "image", src: "/gallery/freshers.svg" },
-  { title: "Brisbane", category: "Travel", type: "image", src: "/gallery/brisbane.svg" },
-];
-
 export const BOOKING_FEATURES = [
   { title: "High-Energy Crowd Engagement", description: "Sets built around reading the room and keeping the floor moving." },
   { title: "Festival & University Experience", description: "Proven across large student events, clubs, and festival stages." },
