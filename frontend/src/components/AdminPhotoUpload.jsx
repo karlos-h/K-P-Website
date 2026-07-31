@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { processAdminPhoto } from "../lib/processImage";
 
 const BUCKET = "event-photos";
 
@@ -20,20 +21,34 @@ function sanitizeFileName(name) {
   return safeExt ? `${safeBase}.${safeExt}` : safeBase;
 }
 
+// processAdminPhoto always returns a JPEG regardless of what was selected, so
+// the stored object must be named .jpg — keeping the source extension would
+// leave a PNG/HEIC/GIF name on JPEG bytes.
+function jpegStorageName(name) {
+  const sanitized = sanitizeFileName(name);
+  const lastDot = sanitized.lastIndexOf(".");
+  const base = lastDot > 0 ? sanitized.slice(0, lastDot) : sanitized;
+  return `${base}.jpg`;
+}
+
 // ── Individual file row ───────────────────────────────────────────────────────
 
-function FileRow({ file, progress, error, isCover, onSetCover, publicUrl }) {
+function FileRow({ file, progress, error, isCover, onSetCover, publicUrl, compressing }) {
   const thumb = publicUrl ?? URL.createObjectURL(file);
   return (
     <div style={{ ...rs.fileRow, borderColor: isCover ? "#c9a84c" : "#1e1e1e" }}>
       <img src={thumb} alt={file.name} style={rs.thumb} />
       <div style={rs.fileInfo}>
         <span style={rs.fileName}>{file.name}</span>
+        {/* An error always wins — a failed compression clears `compressing`
+            and sets `error`, and that outcome must stay visible. */}
         {error
           ? <span style={rs.errorText}>{error}</span>
-          : progress < 100
-            ? <div style={rs.progressBar}><div style={{ ...rs.progressFill, width: `${progress}%` }} /></div>
-            : <span style={rs.doneText}>✓ Uploaded</span>
+          : compressing
+            ? <span style={rs.compressingText}>Compressing…</span>
+            : progress < 100
+              ? <div style={rs.progressBar}><div style={{ ...rs.progressFill, width: `${progress}%` }} /></div>
+              : <span style={rs.doneText}>✓ Uploaded</span>
         }
       </div>
       <button
@@ -70,6 +85,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
   const [files, setFiles] = useState([]);
   const [progress, setProgress] = useState({}); // filename -> 0-100
   const [errors, setErrors] = useState({});     // filename -> error string
+  const [compressing, setCompressing] = useState({}); // filename -> boolean
   const [publicUrls, setPublicUrls] = useState({}); // filename -> url
   const [coverFile, setCoverFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -94,6 +110,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
     setFiles(picked);
     setProgress({});
     setErrors({});
+    setCompressing({});
     setPublicUrls({});
     setCoverFile(picked[0]?.name ?? null);
     setDone(false);
@@ -113,14 +130,30 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
       // Sanitize the filename before it ever touches the storage path — an
       // unsanitized name (e.g. containing "../") could otherwise write outside
       // this event's folder or overwrite unrelated objects in the bucket.
-      const safeName = sanitizeFileName(file.name);
+      const safeName = jpegStorageName(file.name);
       const path = `${effectiveSlug}/${safeName}`;
+
+      // Full-resolution DSLR JPEGs (6000x4000, 7-34 MB) blow straight past the
+      // bucket's size cap, so downscale and re-encode before uploading — the
+      // same pipeline the public crowd-pov path has always used. Also means
+      // visitors are served ~1 MB gallery images instead of the originals.
+      setCompressing((c) => ({ ...c, [file.name]: true }));
+      let processed;
+      try {
+        processed = await processAdminPhoto(file);
+      } catch (err) {
+        setErrors((e) => ({ ...e, [file.name]: err.message }));
+        setProgress((p) => ({ ...p, [file.name]: 0 }));
+        setCompressing((c) => ({ ...c, [file.name]: false }));
+        continue;
+      }
+      setCompressing((c) => ({ ...c, [file.name]: false }));
 
       setProgress((p) => ({ ...p, [file.name]: 5 }));
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
-        .upload(path, file, { upsert: true });
+        .upload(path, processed, { upsert: true, contentType: "image/jpeg" });
 
       if (uploadError) {
         setErrors((e) => ({ ...e, [file.name]: uploadError.message }));
@@ -249,6 +282,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
               isCover={coverFile === file.name}
               onSetCover={setCoverFile}
               publicUrl={publicUrls[file.name]}
+              compressing={compressing[file.name]}
             />
           ))}
         </div>
@@ -307,6 +341,7 @@ const rs = {
   progressBar: { height: "3px", background: "#222", marginTop: "0.35rem", borderRadius: "2px" },
   progressFill: { height: "100%", background: "#C9A84C", borderRadius: "2px", transition: "width 0.2s" },
   doneText: { color: "#5ec97a", fontSize: "0.72rem" },
+  compressingText: { color: "#C9A84C", fontSize: "0.72rem" },
   errorText: { color: "#e05c5c", fontSize: "0.72rem" },
   coverBtn: { background: "transparent", border: "1px solid #2a2a2a", color: "#555", padding: "0.3rem 0.6rem", fontSize: "0.68rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 },
   coverBtnActive: { borderColor: "#C9A84C", color: "#C9A84C" },
