@@ -5,6 +5,31 @@ Format: newest version first.
 
 ---
 
+## v5.25.0 — Compress admin event photo uploads
+
+### Fixed
+- **Oversized event photos were rejected outright by the admin uploader.** `AdminPhotoUpload.jsx` sent the raw `File` straight to Storage, and the `event-photos` bucket caps files at 15 MB (migration 018). Real event photography is full-resolution DSLR JPEGs — 6000×4000, 7–34 MB — so uploads failed with a "file too large" error from Supabase. Even the ones that squeaked under the cap were served to every gallery visitor at full resolution
+- The public Crowd POV path has had a working client-side pipeline for this since migration 033; the admin path simply never got wired into it. That was the whole root cause — no new technique was needed, just the missing connection
+
+### Changed
+- **`frontend/src/lib/processImage.js` now serves both upload paths.** The shared core (HEIC→JPEG → decode with EXIF orientation baked in → downscale to a 2000px longest edge → re-encode at 0.85 JPEG quality → size check) is extracted into `processImageFile(file, { maxEdge, quality, maxBytes })`. `processSubmissionPhoto` and the new `processAdminPhoto` are thin wrappers over it
+  - `processSubmissionPhoto` is behaviourally unchanged — same defaults, same error messages, same control flow. `CrowdPovModal.jsx` shows those messages to visitors verbatim, so they were preserved exactly and that file was not touched
+  - The two wrappers are deliberately separate named exports with identical settings rather than one aliasing the other, so admin and crowd-pov can diverge later without a rename
+  - The HEIC intermediate conversion stays pinned to the module-level quality rather than a caller-supplied one, so an aggressive final quality could never compound into two lossy passes
+- **`AdminPhotoUpload.jsx` compresses before uploading.** Files run through `processAdminPhoto` inside a try/catch; a processing failure surfaces per-file through the existing error state and skips that file rather than attempting the upload. A "Compressing…" label shows while it runs, with errors still taking priority. Since the output is always JPEG, storage paths are now forced to `.jpg` and the upload passes `contentType: "image/jpeg"`
+- Realistic output is now a few hundred KB to ~1–2 MB, so galleries load dramatically faster for visitors as a side effect
+
+### Added
+- **Migration 038** — raises the `event-photos` bucket limit from 15 MB to 20 MB. This is a safety margin behind the client-side compression, not a return to accepting raw originals. `allowed_mime_types` is unchanged (it already includes `image/jpeg`, all this path can now produce), and the `crowd-pov`/`crowd-pov-pending` buckets keep their 15 MB limits
+
+### Notes
+- Animated GIFs are flattened to their first frame, since canvas re-encoding only ever captures one. Acceptable for event photography and noted in the code
+- Forcing `.jpg` means `IMG_1234.png` and `IMG_1234.jpg` now resolve to the same storage object, where before they were distinct. With `upsert: true` the second silently overwrites the first. This mirrors a pre-existing limitation — `FileRow` already keys on `file.name`, so identically-named files were already broken — and neither was changed here
+- `thumb_url` still equals `photo_url`; no separate thumbnail size was introduced. Out of scope, still worth doing later
+- Canvas-based resizing needs a real DOM, so this is not covered by automated tests. Verified via lint, production build, and a line-by-line review of the `processSubmissionPhoto` diff for regressions
+
+---
+
 ## v5.24.1 — Fix unreadable dropdown options across the site
 
 ### Fixed
