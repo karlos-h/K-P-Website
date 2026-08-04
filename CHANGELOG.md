@@ -64,6 +64,22 @@ Format: newest version first.
 
 ---
 
+## v5.26.0 — Admin events: search bar and clickable rows
+
+### Added
+- **Search bar above the events table** (`AdminEventsManager.jsx`). Case-insensitive substring match across title, venue, city, and type — a row matches if any one of those fields contains the query. Filtering runs after the existing sort, so the status-then-date-then-title ordering is preserved within the results. The empty state now distinguishes "No events yet." from `No events match "…".`
+
+### Changed
+- **Whole event rows are clickable to edit.** Previously only the small "Edit" text button opened the inline form. The row is only clickable while idle — in the editing and deleting states it stays inert so it can't fight with the inline form's own controls, which also means the "✕ Cancel" button is unaffected
+- The "Delete" button now stops click propagation. Without it the row's handler would also fire, and because the two handlers set `editingId`/`deletingId` in opposite orders the row would land in edit mode instead of showing the delete confirmation
+- Shortened several `EventForm` field labels (Humanitix ID, gallery URL, embedding checkbox, photographer URL) for readability
+
+### Notes
+- Scoped to the events admin tab only — `VenueRow` / `AdminTrustedVenues.jsx` are untouched
+- If a search is typed while an existing event is mid-edit and the query excludes that row, the inline form unmounts and unsaved field changes are lost. Nothing persisted is affected and re-editing recovers. Not addressed here; the fix would be to always keep the row being edited in the filtered set
+
+---
+
 ## v5.25.0 — Compress admin event photo uploads
 
 ### Fixed
