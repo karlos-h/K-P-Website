@@ -5,6 +5,24 @@ Format: newest version first.
 
 ---
 
+## v5.27.0 — Admin events: search bar and clickable rows
+
+### Added
+- **Search bar above the events table** (`AdminEventsManager.jsx`). Case-insensitive substring match across title, venue, city, and type — a row matches if any one of those fields contains the query. Filtering runs after the existing sort, so the status-then-date-then-title ordering is preserved within the results. The empty state now distinguishes "No events yet." from `No events match "…".`
+
+### Changed
+- **Whole event rows are clickable to edit.** Previously only the small "Edit" text button opened the inline form. The row is only clickable while idle — in the editing and deleting states it stays inert so it can't fight with the inline form's own controls, which also means the "✕ Cancel" button is unaffected
+- **Both action buttons stop click propagation.** For "Delete" this is load-bearing: without it the row's handler fires too, and because the two handlers set `editingId`/`deletingId` in opposite orders the row would land in edit mode instead of showing the delete confirmation. For "Edit" the bubble is currently harmless — the row calls the same `onEdit` — but letting it through runs the handler twice on every click, which becomes a silent duplicate the moment `onEdit` grows a side effect
+- **The row being edited or deleted is never filtered out.** Typing a query that excluded it would otherwise unmount its inline form mid-edit and discard whatever had been typed. The predicate still filters the sorted list, so a preserved row stays in its normal position rather than being pinned anywhere
+- Shortened several `EventForm` field labels (Humanitix ID, gallery URL, embedding checkbox, photographer URL) for readability
+
+### Notes
+- Scoped to the events admin tab only — `VenueRow` / `AdminTrustedVenues.jsx` are untouched
+- A consequence of preserving the in-progress row: searching for a term with no real matches *while* editing shows that one row rather than the "No events match" message. That is the intended trade-off — the open form staying put matters more than a pristine empty state
+- Originally drafted as v5.26.0, which collided with the already-released rotating-mosaic version. Renumbered to v5.27.0 and moved above v5.26.1 to restore ordering
+
+---
+
 ## v5.26.1 — RotatingPhotoGrid review fixes: viewport-gated rotation, focus trap, dead CSS
 *Follow-up pass on v5.26.0. No visual or behavioural change to the design itself.*
 

@@ -109,11 +109,16 @@ const BLANK = {
 function EventRow({ event, isEditing, isDeleting, onEdit, onDeleteClick, onCancelEdit, onCancelDelete, onSave, onConfirmDelete, saving, allEvents }) {
   return (
     <>
+      {/* The whole row opens the edit form, so admins don't have to hit the
+          small "Edit" target. Only while idle — in the editing/deleting states
+          the row would otherwise fight with the inline form's own controls. */}
       <tr
         style={{
           ...t.tr,
+          cursor: !isEditing && !isDeleting ? "pointer" : "default",
           background: isEditing ? "rgba(201,168,76,0.06)" : isDeleting ? "rgba(224,92,92,0.05)" : "transparent",
         }}
+        onClick={!isEditing && !isDeleting ? () => onEdit(event) : undefined}
         onMouseEnter={e => { if (!isEditing && !isDeleting) e.currentTarget.style.background = "#111"; }}
         onMouseLeave={e => { e.currentTarget.style.background = isEditing ? "rgba(201,168,76,0.06)" : isDeleting ? "rgba(224,92,92,0.05)" : "transparent"; }}
       >
@@ -131,8 +136,27 @@ function EventRow({ event, isEditing, isDeleting, onEdit, onDeleteClick, onCance
         <td style={{ ...t.td, whiteSpace: "nowrap" }}>
           {!isEditing && !isDeleting && (
             <>
-              <button style={t.actionBtn} onClick={() => onEdit(event)}>Edit</button>
-              <button style={{ ...t.actionBtn, ...t.deleteBtn }} onClick={() => onDeleteClick(event.id)}>Delete</button>
+              {/* Both action buttons stop propagation. For Edit the bubble is
+                  currently harmless — the row handler calls the same onEdit —
+                  but letting it through means every click runs the handler
+                  twice, which turns into a silent duplicate the moment onEdit
+                  grows a side effect. */}
+              <button
+                style={t.actionBtn}
+                onClick={(e) => { e.stopPropagation(); onEdit(event); }}
+              >
+                Edit
+              </button>
+              {/* For Delete it is load-bearing: bubbling would fire onEdit too,
+                  and since the two handlers set editingId/deletingId in
+                  opposite order the row would land in edit mode instead of
+                  showing the delete confirmation. */}
+              <button
+                style={{ ...t.actionBtn, ...t.deleteBtn }}
+                onClick={(e) => { e.stopPropagation(); onDeleteClick(event.id); }}
+              >
+                Delete
+              </button>
             </>
           )}
           {(isEditing || isDeleting) && (
@@ -250,7 +274,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
           />
         </label>
         <label style={{ ...t.label, gridColumn: "1 / -1" }}>
-          <span style={t.labelText}>Humanitix Event ID (optional — enables mailing list sync)</span>
+          <span style={t.labelText}>Humanitix Event ID (Enables mailing list sync)</span>
           <input
             style={t.input}
             value={form.humanitix_event_id || ""}
@@ -272,7 +296,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
       {galleryOpen && (
         <div style={{ ...t.formGrid, marginTop: "0.75rem", marginBottom: "1.25rem" }}>
           <label style={{ ...t.label, gridColumn: "1 / -1" }}>
-            <span style={t.labelText}>Gallery URL (Adobe Lightroom, Google Photos, etc.)</span>
+            <span style={t.labelText}>External Gallery URL</span>
             <input
               style={t.input}
               type="url"
@@ -289,7 +313,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
               style={{ accentColor: "#C9A84C", width: "1rem", height: "1rem" }}
             />
             <span style={{ fontSize: 13, color: "#888" }}>
-              This link supports embedding on the site (most platforms block this — leave unchecked if unsure)
+              This link supports embedding on the site (leave unchecked if unsure)
             </span>
           </label>
           <label style={t.label}>
@@ -302,7 +326,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
             />
           </label>
           <label style={t.label}>
-            <span style={t.labelText}>Photographer website / portfolio URL</span>
+            <span style={t.labelText}>Photographer URL</span>
             <input
               style={t.input}
               type="url"
@@ -334,6 +358,7 @@ export default function AdminEventsManager({ events, setEvents }) {
   const [editingId, setEditingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   const handleSave = async (form) => {
     setSaving(true);
@@ -395,11 +420,38 @@ export default function AdminEventsManager({ events, setEvents }) {
     return a.title.localeCompare(b.title);
   });
 
+  // Filter after sorting so the status/date ordering above is preserved within
+  // the results. Matches if any of title/venue/city/type contains the query.
+  //
+  // The row being edited or deleted is always kept, even when it doesn't match.
+  // Otherwise typing a query that excludes it unmounts its inline EventForm
+  // mid-edit and silently discards whatever the admin had typed. Because this
+  // still filters `sorted`, the preserved row stays in its normal position
+  // rather than being pinned anywhere. (editingId === "new" needs no special
+  // case: that form renders above the table, not as a row.)
+  const query = search.trim().toLowerCase();
+  const filtered = query
+    ? sorted.filter(ev =>
+        ev.id === editingId ||
+        ev.id === deletingId ||
+        [ev.title, ev.location, ev.city, ev.type]
+          .filter(Boolean)
+          .some(field => field.toLowerCase().includes(query))
+      )
+    : sorted;
+
   const cols = ["Title", "Performance Date", "Time", "Venue", "City", "Type", "Status", ""];
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", gap: "1rem", flexWrap: "wrap" }}>
+        <input
+          style={{ ...t.input, maxWidth: 320, flex: "1 1 240px" }}
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search events by title, venue, city, or type…"
+        />
         <button style={t.addBtn} onClick={() => { setEditingId("new"); setDeletingId(null); }}>+ Add Event</button>
       </div>
 
@@ -422,9 +474,13 @@ export default function AdminEventsManager({ events, setEvents }) {
               </tr>
             </thead>
             <tbody>
-              {sorted.length === 0 ? (
-                <tr><td colSpan={8} style={{ ...t.td, textAlign: "center", color: "#333", padding: "3rem" }}>No events yet.</td></tr>
-              ) : sorted.map(ev => (
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ ...t.td, textAlign: "center", color: "#333", padding: "3rem" }}>
+                    {events.length === 0 ? "No events yet." : `No events match "${search}".`}
+                  </td>
+                </tr>
+              ) : filtered.map(ev => (
                 <EventRow
                   key={ev.id}
                   event={ev}
