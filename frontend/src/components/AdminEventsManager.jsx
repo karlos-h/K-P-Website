@@ -136,9 +136,19 @@ function EventRow({ event, isEditing, isDeleting, onEdit, onDeleteClick, onCance
         <td style={{ ...t.td, whiteSpace: "nowrap" }}>
           {!isEditing && !isDeleting && (
             <>
-              <button style={t.actionBtn} onClick={() => onEdit(event)}>Edit</button>
-              {/* Must not bubble to the row's onClick — that would fire onEdit
-                  too, and since the two handlers set editingId/deletingId in
+              {/* Both action buttons stop propagation. For Edit the bubble is
+                  currently harmless — the row handler calls the same onEdit —
+                  but letting it through means every click runs the handler
+                  twice, which turns into a silent duplicate the moment onEdit
+                  grows a side effect. */}
+              <button
+                style={t.actionBtn}
+                onClick={(e) => { e.stopPropagation(); onEdit(event); }}
+              >
+                Edit
+              </button>
+              {/* For Delete it is load-bearing: bubbling would fire onEdit too,
+                  and since the two handlers set editingId/deletingId in
                   opposite order the row would land in edit mode instead of
                   showing the delete confirmation. */}
               <button
