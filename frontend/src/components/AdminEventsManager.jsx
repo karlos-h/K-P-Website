@@ -422,9 +422,18 @@ export default function AdminEventsManager({ events, setEvents }) {
 
   // Filter after sorting so the status/date ordering above is preserved within
   // the results. Matches if any of title/venue/city/type contains the query.
+  //
+  // The row being edited or deleted is always kept, even when it doesn't match.
+  // Otherwise typing a query that excludes it unmounts its inline EventForm
+  // mid-edit and silently discards whatever the admin had typed. Because this
+  // still filters `sorted`, the preserved row stays in its normal position
+  // rather than being pinned anywhere. (editingId === "new" needs no special
+  // case: that form renders above the table, not as a row.)
   const query = search.trim().toLowerCase();
   const filtered = query
     ? sorted.filter(ev =>
+        ev.id === editingId ||
+        ev.id === deletingId ||
         [ev.title, ev.location, ev.city, ev.type]
           .filter(Boolean)
           .some(field => field.toLowerCase().includes(query))
