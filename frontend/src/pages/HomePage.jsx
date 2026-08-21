@@ -4,7 +4,6 @@ import {
   ArrowRight,
   CalendarDays,
   Globe2,
-  Headphones,
   Instagram,
   Menu,
   Music2,
@@ -20,6 +19,7 @@ import {
 import RotatingPhotoGrid from "../components/RotatingPhotoGrid";
 import { useEventGalleries } from "../hooks/useEventGalleries";
 import WatchCarousel from "../components/WatchCarousel";
+import MusicCarousel from "../components/MusicCarousel";
 import SocialFeed from "../components/SocialFeed";
 import TikTokFeed from "../components/TikTokFeed";
 import {
@@ -152,23 +152,20 @@ function HomePage() {
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState([]);
   const [trustedVenues, setTrustedVenues] = useState([]);
-  const [mixes, setMixes] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   // Fetch all dynamic data on mount
   useEffect(() => {
     const fetchData = async () => {
-      const [eventsRes, statsRes, venuesRes, mixesRes] = await Promise.all([
+      const [eventsRes, statsRes, venuesRes] = await Promise.all([
         supabase.from("events").select("*").order("sort_date", { ascending: false, nullsFirst: false }),
         supabase.from("stats").select("*").order("sort_order"),
         supabase.from("trusted_venues").select("*").order("sort_order"),
-        supabase.from("mixes").select("*").order("created_at"),
       ]);
 
       if (eventsRes.data) setEvents(eventsRes.data);
       if (statsRes.data) setStats(statsRes.data);
       if (venuesRes.data) setTrustedVenues(venuesRes.data);
-      if (mixesRes.data) setMixes(mixesRes.data);
       setDataLoading(false);
     };
 
@@ -574,34 +571,7 @@ function HomePage() {
               copy="Open format sets built for club rooms, festival fields, and everything between."
               align="center"
             />
-            <div className="music__grid">
-              {mixes.map((mix, index) => (
-                <motion.article
-                  className="music-card"
-                  key={mix.title}
-                  {...revealProps(index * 0.08, prefersReducedMotion)}
-                >
-                    <div className="music-card__art">
-                    <Headphones size={34} />
-                    <span>Mix 0{index + 1}</span>
-                    </div>
-                    <div className="music-card__body">
-                    <p>{mix.genre}</p>
-                    <h3>{mix.title}</h3>
-                    <iframe
-                        title={`${mix.title} SoundCloud player`}
-                        width="100%"
-                        height="120"
-                        scrolling="no"
-                        frameBorder="no"
-                        allow="autoplay"
-                        loading="lazy"
-                        src={mix.embed_url}
-                    />
-                    </div>
-                </motion.article>
-                ))}
-            </div>
+            <MusicCarousel />
             <motion.div
               style={{ textAlign: "center", marginTop: "3rem" }}
               {...revealProps(0, prefersReducedMotion)}
