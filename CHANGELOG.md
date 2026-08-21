@@ -5,6 +5,23 @@ Format: newest version first.
 
 ---
 
+## v5.28.0 — Listen: working SoundCloud players and a carousel
+
+### Fixed
+- **Every SoundCloud embed on the home page was blank.** The `mixes.embed_url` column holds plain `soundcloud.com` track links — the thing you get from the browser address bar — and a track page answers with `x-frame-options: SAMEORIGIN`, so pointing an `<iframe src>` at one can never render regardless of which track it names. `toSoundCloudEmbedSrc()` in `MusicCarousel.jsx` now wraps whatever is in the column into SoundCloud's real player endpoint (`w.soundcloud.com/player/?url=…`, which sends no framing headers), carrying the site gold as the player colour. Fixed in code rather than by reformatting the rows, because address-bar links will keep being pasted into that column
+- A row with an empty `embed_url` renders a small "Player coming soon" block instead of an iframe that cannot load
+
+### Changed
+- **The Listen section is a carousel instead of a 3-up grid.** With four mixes in the table the fourth wrapped onto a second row on its own. It is now the same horizontally scrolling strip as Watch — arrow buttons paging by 80% of the visible width, scroll-snap, and a peek of the next card at the edge. About three cards at the 1120px container width, one at a time on mobile with the arrows hidden at ≤640px
+- `MusicCarousel` fetches its own `mixes` rows on mount, the way `WatchCarousel` already does. The `mixes` query is out of `HomePage.jsx`'s `Promise.all`, and it falls back to three placeholder cards if the table is empty or unreachable, so the section never renders blank
+
+### Notes
+- `.music-card` and its child styles are unchanged — the cards are sized by `.music-carousel__track > .music-card` now instead of `.music__grid`, which is deleted along with its two responsive rules
+- The arrow buttons could not be exercised in the preview browser: it does not composite frames, which freezes `scrollBy({behavior: "smooth"})` at its start position. The code path is `WatchCarousel`'s, and `behavior: "auto"` moves the track through its full range, but the smooth paging itself is unverified
+- The two 403s in the console on localhost are the YouTube Data API key being HTTP-referrer-restricted to the production domain. Pre-existing, unrelated, and expected off-domain
+
+---
+
 ## v5.27.0 — Admin events: search bar and clickable rows
 
 ### Added
