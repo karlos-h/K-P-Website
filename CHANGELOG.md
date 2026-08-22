@@ -5,6 +5,25 @@ Format: newest version first.
 
 ---
 
+## v5.29.0 — Admin login page: mobile fixes
+
+### Fixed
+- **Tapping the email or password field zoomed the whole page on iOS Safari.** This was the root cause of the "page is zoomed in, scrolling feels unnatural" report — not a viewport or scroll bug. Safari zooms the page to fit any focused input rendering under 16px, and both fields inherited `.contact input`'s `.9rem` (14.4px). A `.login-card .contact input { font-size: 1rem }` override lifts them to exactly the threshold. Scoped to the card rather than changing `.contact input`, because that class is shared with the public contact/booking form on the home page
+- **`min-height: 100vh` didn't track the visible viewport.** `100vh` is the height with mobile browser chrome *expanded*, so the centred card sat slightly low and shifted as the address bar collapsed on scroll. `100dvh` now follows the real visible area, declared after the `100vh` so browsers without `dvh` keep the old value
+
+### Added
+- **A `@media (max-width: 480px)` block for the login card** — the only page-level card pattern in `global.css` that had none, so a 375px phone was rendering the full desktop `3rem 2.5rem` inset. Page padding drops to `1rem` and card padding to `2.25rem 1.5rem`, matching the breakpoint the Media Hub email gate already uses
+- **Autofill and mobile-keyboard attributes on both inputs** (`LoginPage.jsx`). Email gets `autoComplete="username"` — `"email"` reads as a newsletter signup to most password managers; `"username"` paired with the password field's `current-password` is what makes iOS Keychain, Chrome, and 1Password offer a saved login. Email also gets `autoCapitalize="none"`, `autoCorrect="off"`, and `spellCheck="false"`, so a mobile keyboard stops capitalising the first character of an address
+
+### Notes
+- Verified in the preview browser at 320 / 375 / 768 / 1280: no horizontal overflow at any width, card stays vertically centred, and the ≥481px rendering is byte-identical to before
+- **One intentional desktop delta:** the login inputs now render at 16px instead of 14.4px, which makes the card 6px taller (3px per field). The iOS zoom trigger is not width-gated — a landscape phone or an iPad in split view is well over 480px and still zooms — so gating the override behind a breakpoint would have left the bug live on tablets. The 6px was the cheaper trade
+- Confirmed in-browser that the public contact form is untouched: all six of its fields still compute to 14.4px
+- Out of scope, worth a follow-up: that public contact form and the Media Hub email gate have the same sub-16px inputs and will zoom on iOS the same way. Also untouched is any mobile work on `AdminDashboard.jsx` — the tab row and enquiries table are a separate, larger piece
+- No "forgot password" flow was added; that decision hasn't been made yet
+
+---
+
 ## v5.28.0 — Listen: working SoundCloud players and a carousel
 
 ### Fixed

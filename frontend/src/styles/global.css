@@ -435,6 +435,9 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 /* Admin login page */
 .login-page {
   min-height: 100vh;
+  /* dvh tracks the visible viewport as mobile browser chrome collapses/expands;
+     the 100vh above stays first as the fallback for browsers without dvh. */
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -447,6 +450,15 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   border: 1px solid #1e1e1e;
   background: var(--panel);
   text-align: center;
+}
+
+/* Scoped to the login card so the shared public contact form keeps its .9rem
+   inputs. iOS Safari zooms the whole page on focus for anything under 16px. */
+.login-card .contact input { font-size: 1rem; }
+
+@media (max-width: 480px) {
+  .login-page { padding: 1rem; }
+  .login-card { padding: 2.25rem 1.5rem; }
 }
 
 /* ── Nav external links ── */
