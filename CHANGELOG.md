@@ -5,6 +5,71 @@ Format: newest version first.
 
 ---
 
+## v5.30.1 — Public contact form: iOS zoom fix
+
+### Fixed
+- **Tapping any field in the public contact/booking form zoomed the page on iOS Safari.** Same root cause as the login page in v5.29.0: `.contact input, .contact textarea` was `.9rem` (14.4px), under the 16px threshold at which Safari zooms to fit a focused field. The base rule is now `1rem`, which fixes all five visible fields (name, company, event type, email, message) plus the honeypot in one line
+- Not gated behind a mobile breakpoint, for the same reason as the login fix: the zoom trigger isn't width-gated, so a landscape phone or tablet sits above any sensible breakpoint and would still zoom
+
+### Removed
+- `.login-card .contact input { font-size: 1rem; }` — the scoped override added in v5.29.0. The base rule now produces the same 16px, so the override was dead weight. Verified `/login` still renders both inputs at 16px from the base rule alone before deleting it
+
+### Notes
+- **Correction to the v5.30.0 and v5.29.0 entries.** Both said the Media Hub email gate shared this bug. It does not, and this was checked rather than assumed: `.email-gate__field input` has been `font-size: 1rem` all along, and the gate does not use the `.contact` class at all, so neither the old rule nor the new one has ever applied to it. Confirmed in the browser at `/media-hub` — the live input computes to 16px and nothing about that component changed here
+- Desktop appearance of the contact form changes slightly, as accepted: fields go 14.4px → 16px, which makes the contact section 14px taller (868px → 882px at 1280px). The two-column `.form-grid` is unaffected and still collapses to one column at ≤900px
+- `/login` is unchanged — card still 343×500 at 375px with the same `2.25rem 1.5rem` padding
+
+---
+
+## v5.30.0 — Admin dashboard: mobile optimisation across all 7 tabs
+
+### Added
+- **`frontend/src/hooks/useIsMobile.js`** — a `matchMedia` hook at the site's existing 640px breakpoint. None of the eight admin files use a single CSS `className`; every style is a local inline `style={{}}` object (`s.*`, `t.*`, `g.*`, `rs.*`, `c.*`), which no `@media` rule in `global.css` can reach. The hook is how a breakpoint gets into those objects at all. The one pre-existing exception, `.admin-tab-btn`, stays in CSS
+- **Stacked mobile cards replace all four admin tables** (Enquiries, Events, Mailing List, Trusted Venues) below 640px. Each was already inside an `overflowX: auto` wrapper, so nothing *broke* — but every one of them put its only controls (a status `<select>`, or Edit/Delete) in the last of 7–8 columns, so using them meant scrolling the full table width sideways first. Cards carry labelled field/value pairs with the actions at the bottom. The `<table>` markup is untouched and still renders above the breakpoint
+- Inline edit and delete-confirm work inside the cards on all three tables that have them. Editing is parent state with the row as a pure view, so the card is a second layout over the same state — no persistence logic moved
+
+### Fixed
+- **The tab row could strand four of the seven tabs.** `s.tabRow` was a plain `display: flex` with no wrap and no scroll: the seven tabs measure 861px against a 375px viewport, so Crowd POV, Mailing List and Venues had no way to be reached. It is now a horizontally scrollable strip (`.admin-tab-row` carries only the scrollbar-hiding pseudo-element; the layout stays inline)
+- `.admin-tab-btn` gains `min-height: 44px` and `white-space: nowrap` at all widths — it was ~29px tall, and the labels would otherwise break mid-phrase inside the scrolling strip
+- **Every interactive control in the admin area now has a ≥44px touch target on mobile** and **no text-entry field renders under 16px**, the threshold below which iOS Safari zooms the page on focus. Both were swept by measuring the live DOM, not by reading selectors — see Notes
+- Topbar drops to `1rem` padding and hides the user email (the only item there identifying nothing actionable); "View Site" and "Log Out" both reach 44px
+- Stats row becomes 2×2 instead of a squeezed 4-across
+- Gallery: photo grid is a fixed 2 columns; Cover/Delete tiles reach 44px and are spaced apart (Delete sat immediately beside Cover at ~20px tall — a real mis-tap risk); tile label font goes 0.62rem → 0.75rem **at all widths**, since 9.9px was near-unreadable on desktop too
+- Gallery relink row stacks vertically on mobile. `minWidth: 0` on the select is load-bearing there: a `<select>`'s min-content width is its longest option, and the event titles pushed the whole column 24px past the card edge
+- Crowd POV: Approve/Reject and both destructive-confirm dialogs reach 44px with wider separation between the confirm and cancel actions
+- Photo Upload: new-event fields stack to one column; Upload, Cover and the two mode toggles all reach 44px
+
+### Notes
+- Verified by mounting the real dashboard behind a temporary harness route with the Supabase singleton stubbed, then measuring the live DOM at 375px across all 7 tabs plus every add form, edit state, delete confirmation and the gallery detail view. The harness and its route were removed afterwards; `App.jsx` is unchanged
+- That sweep caught six touch targets the per-file specs had not listed: "View Site", "+ Add Event", the Events form's own Save/Cancel, Photo Upload's two mode toggles, and Gallery's "Save Link". All fixed
+- **Desktop is provably unchanged.** Every mobile value is a separate `*Mobile` sibling entry spread conditionally (`...(isMobile ? t.xMobile : {})`), so with `isMobile === false` each spread is `{}`. Confirmed by loading at 1280px: table present, 4-column stats, `0 32px` topbar padding, `minHeight: auto`, 11.52px status select. The two deliberate exceptions are the gallery tile font above and `.admin-tab-btn`'s 44px floor
+- **Not verified: reflow on live rotation.** The preview pane's viewport emulation dispatches neither `resize` nor `matchMedia` `change` events (both counters stayed at 0 across a resize), so no listener-based approach is exercisable there. Each width was verified by fresh load instead. Real browsers fire both, so rotation should reflow — but it is worth a spin on an actual phone
+- `AdminPhotoUpload`'s file input deliberately has no `capture` attribute, now recorded in a code comment: this screen is for bulk-uploading a photographer's existing shots, and `capture` would drop the photo-library option and force the camera
+- Venue sort-order arrows were considered and skipped: `sort_order` only reaches the DB through the full-row save, so arrows would mean touching the persistence path — a feature change, not a responsiveness fix. Sort order is still editable via the (now non-zooming) number input
+- Left as-is, flagged: `mailto:` and venue-website links inside cards are 16–38px tall. They are field *values* rather than action buttons, and padding them to 44px would put visible gaps through the card rows. Easy to change if the smaller target proves annoying in practice
+- Out of scope, for later: `CrowdPovModal.jsx` — the public-facing photo-submission form — has its own mobile issues (a sub-32px close button, sub-16px inputs, no scroll-into-view when the keyboard opens). Public-facing, so not touched here
+
+---
+
+## v5.29.0 — Admin login page: mobile fixes
+
+### Fixed
+- **Tapping the email or password field zoomed the whole page on iOS Safari.** This was the root cause of the "page is zoomed in, scrolling feels unnatural" report — not a viewport or scroll bug. Safari zooms the page to fit any focused input rendering under 16px, and both fields inherited `.contact input`'s `.9rem` (14.4px). A `.login-card .contact input { font-size: 1rem }` override lifts them to exactly the threshold. Scoped to the card rather than changing `.contact input`, because that class is shared with the public contact/booking form on the home page
+- **`min-height: 100vh` didn't track the visible viewport.** `100vh` is the height with mobile browser chrome *expanded*, so the centred card sat slightly low and shifted as the address bar collapsed on scroll. `100dvh` now follows the real visible area, declared after the `100vh` so browsers without `dvh` keep the old value
+
+### Added
+- **A `@media (max-width: 480px)` block for the login card** — the only page-level card pattern in `global.css` that had none, so a 375px phone was rendering the full desktop `3rem 2.5rem` inset. Page padding drops to `1rem` and card padding to `2.25rem 1.5rem`, matching the breakpoint the Media Hub email gate already uses
+- **Autofill and mobile-keyboard attributes on both inputs** (`LoginPage.jsx`). Email gets `autoComplete="username"` — `"email"` reads as a newsletter signup to most password managers; `"username"` paired with the password field's `current-password` is what makes iOS Keychain, Chrome, and 1Password offer a saved login. Email also gets `autoCapitalize="none"`, `autoCorrect="off"`, and `spellCheck="false"`, so a mobile keyboard stops capitalising the first character of an address
+
+### Notes
+- Verified in the preview browser at 320 / 375 / 768 / 1280: no horizontal overflow at any width, card stays vertically centred, and the ≥481px rendering is byte-identical to before
+- **One intentional desktop delta:** the login inputs now render at 16px instead of 14.4px, which makes the card 6px taller (3px per field). The iOS zoom trigger is not width-gated — a landscape phone or an iPad in split view is well over 480px and still zooms — so gating the override behind a breakpoint would have left the bug live on tablets. The 6px was the cheaper trade
+- Confirmed in-browser that the public contact form is untouched: all six of its fields still compute to 14.4px
+- Out of scope, worth a follow-up: that public contact form and the Media Hub email gate have the same sub-16px inputs and will zoom on iOS the same way. Also untouched is any mobile work on `AdminDashboard.jsx` — the tab row and enquiries table are a separate, larger piece
+- No "forgot password" flow was added; that decision hasn't been made yet
+
+---
+
 ## v5.28.0 — Listen: working SoundCloud players and a carousel
 
 ### Fixed

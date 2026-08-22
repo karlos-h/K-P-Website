@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -56,6 +57,7 @@ function splitTimeRange(str) {
 function Autocomplete({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -72,14 +74,14 @@ function Autocomplete({ value, onChange, options, placeholder }) {
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
       <input
-        style={t.input}
+        style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }}
         value={value}
         placeholder={placeholder}
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
       />
       {open && filtered.length > 0 && (
-        <div style={t.acDropdown}>
+        <div style={{ ...t.acDropdown, ...(isMobile ? t.acDropdownMobile : {}) }}>
           {filtered.map(opt => (
             <div
               key={opt}
@@ -103,6 +105,17 @@ const BLANK = {
   photo_gallery_url: "", photo_gallery_embeddable: false,
   photographer_name: "", photographer_url: "",
 };
+
+// One labelled field inside a mobile event card. The desktop table gets its
+// column meaning from the <thead>; stacked cards have to carry their own.
+function CardField({ label, children }) {
+  return (
+    <div style={t.cardField}>
+      <span style={t.cardLabel}>{label}</span>
+      <span style={t.cardValue}>{children}</span>
+    </div>
+  );
+}
 
 // ── Row ───────────────────────────────────────────────────────────────────────
 
@@ -194,6 +207,79 @@ function EventRow({ event, isEditing, isDeleting, onEdit, onDeleteClick, onCance
   );
 }
 
+// ── Card (mobile) ─────────────────────────────────────────────────────────────
+// The table has 8 non-wrapping columns, so on a phone the Edit/Delete cell sits
+// far off the right edge of the scroll wrapper. Stacked cards put both actions
+// directly under the event they belong to.
+//
+// No whole-card tap-to-edit here (the row has one): the 44px Edit button makes
+// it unnecessary, and a full-card tap target misfires while thumb-scrolling.
+
+function EventCard({ event, isEditing, isDeleting, onEdit, onDeleteClick, onCancelEdit, onCancelDelete, onSave, onConfirmDelete, saving, allEvents }) {
+  return (
+    <div style={t.card}>
+      <CardField label="Title">
+        <span style={{ color: "#f0ece3", fontWeight: 500 }}>{event.title}</span>
+      </CardField>
+      <CardField label="Date">{formatDate(event.sort_date)}</CardField>
+      <CardField label="Time">{event.performance_time || "—"}</CardField>
+      <CardField label="Venue">{event.location || "—"}</CardField>
+      <CardField label="City">{event.city || "—"}</CardField>
+      <CardField label="Type">{event.type || "—"}</CardField>
+      <CardField label="Status">
+        <span style={{ color: event.status === "upcoming" ? "#5b9cf6" : "#555" }}>
+          {event.status || "—"}
+        </span>
+      </CardField>
+
+      {!isEditing && !isDeleting && (
+        <div style={t.cardActions}>
+          <button
+            style={{ ...t.actionBtn, ...t.touchTarget, ...t.actionBtnMobile }}
+            onClick={() => onEdit(event)}
+          >
+            Edit
+          </button>
+          <button
+            style={{ ...t.actionBtn, ...t.deleteBtn, ...t.touchTarget, ...t.actionBtnMobile }}
+            onClick={() => onDeleteClick(event.id)}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+
+      {isEditing && (
+        <div style={t.cardInline}>
+          <EventForm initial={event} onSave={onSave} onCancel={onCancelEdit} saving={saving} allEvents={allEvents} />
+        </div>
+      )}
+
+      {isDeleting && (
+        <div style={{ ...t.cardInline, background: "#0d0808", padding: "1rem", borderTop: "2px solid rgba(224,92,92,0.2)" }}>
+          <span style={{ fontSize: 14, color: "#e07070" }}>
+            Delete <strong style={{ color: "#f0ece3" }}>{event.title}</strong>? This removes it from the live homepage.
+          </span>
+          <div style={t.cardActions}>
+            <button
+              style={{ ...t.saveBtn, background: "#8b1a1a", ...t.touchTarget, ...t.actionBtnMobile }}
+              onClick={() => onConfirmDelete(event)}
+            >
+              Yes, delete
+            </button>
+            <button
+              style={{ ...t.cancelBtn, ...t.touchTarget, ...t.actionBtnMobile }}
+              onClick={onCancelDelete}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Form ──────────────────────────────────────────────────────────────────────
 
 function uniqueValues(events, key) {
@@ -201,6 +287,7 @@ function uniqueValues(events, key) {
 }
 
 function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({ ...BLANK, ...initial });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const [galleryOpen, setGalleryOpen] = useState(
@@ -227,22 +314,22 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
   return (
     <div style={t.formCard}>
       <h3 style={t.formTitle}>{initial?.id ? "Edit Event" : "Add Event"}</h3>
-      <div style={t.formGrid}>
+      <div style={{ ...t.formGrid, ...(isMobile ? t.formGridMobile : {}) }}>
         <label style={t.label}>
           <span style={t.labelText}>Title *</span>
-          <input style={t.input} value={form.title} onChange={e => set("title", e.target.value)} placeholder="Wonderland Brisbane" />
+          <input style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }} value={form.title} onChange={e => set("title", e.target.value)} placeholder="Wonderland Brisbane" />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Performance Date</span>
-          <input style={t.input} type="date" value={form.sort_date || ""} onChange={e => handleDateChange(e.target.value)} />
+          <input style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }} type="date" value={form.sort_date || ""} onChange={e => handleDateChange(e.target.value)} />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Start Time</span>
-          <input style={t.input} type="time" value={timeRange.start} onChange={e => setTimeRange(r => ({ ...r, start: e.target.value }))} />
+          <input style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }} type="time" value={timeRange.start} onChange={e => setTimeRange(r => ({ ...r, start: e.target.value }))} />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>End Time</span>
-          <input style={t.input} type="time" value={timeRange.end} onChange={e => setTimeRange(r => ({ ...r, end: e.target.value }))} />
+          <input style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }} type="time" value={timeRange.end} onChange={e => setTimeRange(r => ({ ...r, end: e.target.value }))} />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Venue</span>
@@ -258,7 +345,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Status (auto-set from date)</span>
-          <select style={t.select} value={form.status} onChange={e => set("status", e.target.value)}>
+          <select style={{ ...t.select, ...(isMobile ? t.selectMobile : {}) }} value={form.status} onChange={e => set("status", e.target.value)}>
             <option value="upcoming">Upcoming</option>
             <option value="past">Past</option>
           </select>
@@ -266,7 +353,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
         <label style={{ ...t.label, gridColumn: "1 / -1" }}>
           <span style={t.labelText}>Ticket URL</span>
           <input
-            style={t.input}
+            style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }}
             type="url"
             value={form.ticket_url || ""}
             onChange={e => set("ticket_url", e.target.value)}
@@ -276,7 +363,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
         <label style={{ ...t.label, gridColumn: "1 / -1" }}>
           <span style={t.labelText}>Humanitix Event ID (Enables mailing list sync)</span>
           <input
-            style={t.input}
+            style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }}
             value={form.humanitix_event_id || ""}
             onChange={e => set("humanitix_event_id", e.target.value)}
             placeholder="e.g. 64f3c2a1b9d4e2..."
@@ -294,11 +381,11 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
       </div>
 
       {galleryOpen && (
-        <div style={{ ...t.formGrid, marginTop: "0.75rem", marginBottom: "1.25rem" }}>
+        <div style={{ ...t.formGrid, marginTop: "0.75rem", marginBottom: "1.25rem", ...(isMobile ? t.formGridMobile : {}) }}>
           <label style={{ ...t.label, gridColumn: "1 / -1" }}>
             <span style={t.labelText}>External Gallery URL</span>
             <input
-              style={t.input}
+              style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }}
               type="url"
               value={form.photo_gallery_url || ""}
               onChange={e => set("photo_gallery_url", e.target.value)}
@@ -319,7 +406,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
           <label style={t.label}>
             <span style={t.labelText}>Photographer name</span>
             <input
-              style={t.input}
+              style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }}
               value={form.photographer_name || ""}
               onChange={e => set("photographer_name", e.target.value)}
               placeholder="Jane Smith"
@@ -328,7 +415,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
           <label style={t.label}>
             <span style={t.labelText}>Photographer URL</span>
             <input
-              style={t.input}
+              style={{ ...t.input, ...(isMobile ? t.inputMobile : {}) }}
               type="url"
               value={form.photographer_url || ""}
               onChange={e => set("photographer_url", e.target.value)}
@@ -340,13 +427,13 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
 
       <div style={t.formActions}>
         <button
-          style={{ ...t.saveBtn, ...(saving ? t.saveBtnDisabled : {}) }}
+          style={{ ...t.saveBtn, ...(isMobile ? t.touchTarget : {}), ...(saving ? t.saveBtnDisabled : {}) }}
           onClick={handleSubmit}
           disabled={saving || !form.title}
         >
           {saving ? "Saving…" : "Save Event"}
         </button>
-        <button style={t.cancelBtn} onClick={onCancel}>Cancel</button>
+        <button style={{ ...t.cancelBtn, ...(isMobile ? t.touchTarget : {}) }} onClick={onCancel}>Cancel</button>
       </div>
     </div>
   );
@@ -355,6 +442,7 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminEventsManager({ events, setEvents }) {
+  const isMobile = useIsMobile();
   const [editingId, setEditingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -446,13 +534,13 @@ export default function AdminEventsManager({ events, setEvents }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", gap: "1rem", flexWrap: "wrap" }}>
         <input
-          style={{ ...t.input, maxWidth: 320, flex: "1 1 240px" }}
+          style={{ ...t.input, maxWidth: 320, flex: "1 1 240px", ...(isMobile ? t.inputMobile : {}) }}
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search events by title, venue, city, or type…"
         />
-        <button style={t.addBtn} onClick={() => { setEditingId("new"); setDeletingId(null); }}>+ Add Event</button>
+        <button style={{ ...t.addBtn, ...(isMobile ? t.touchTarget : {}) }} onClick={() => { setEditingId("new"); setDeletingId(null); }}>+ Add Event</button>
       </div>
 
       {editingId === "new" && (
@@ -466,6 +554,32 @@ export default function AdminEventsManager({ events, setEvents }) {
       )}
 
       <div style={t.tableCard}>
+        {isMobile ? (
+          filtered.length === 0 ? (
+            <div style={{ ...t.td, textAlign: "center", color: "#333", padding: "3rem" }}>
+              {events.length === 0 ? "No events yet." : `No events match "${search}".`}
+            </div>
+          ) : (
+            <div style={t.cardList}>
+              {filtered.map(ev => (
+                <EventCard
+                  key={ev.id}
+                  event={ev}
+                  isEditing={editingId === ev.id}
+                  isDeleting={deletingId === ev.id}
+                  onEdit={ev => { setEditingId(ev.id); setDeletingId(null); }}
+                  onDeleteClick={id => { setDeletingId(id); setEditingId(null); }}
+                  onCancelEdit={() => setEditingId(null)}
+                  onCancelDelete={() => setDeletingId(null)}
+                  onSave={handleSave}
+                  onConfirmDelete={handleDelete}
+                  saving={saving}
+                  allEvents={events}
+                />
+              ))}
+            </div>
+          )
+        ) : (
         <div style={t.tableWrap}>
           <table style={t.table}>
             <thead>
@@ -499,6 +613,7 @@ export default function AdminEventsManager({ events, setEvents }) {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );
@@ -533,4 +648,29 @@ const t = {
   collapseSet: { background: "rgba(201,168,76,0.15)", color: "#C9A84C", fontSize: 11, padding: "0.1rem 0.4rem", letterSpacing: "0.1em", textTransform: "uppercase" },
   acDropdown: { position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#111", border: "1px solid #2a2a2a", borderTop: "2px solid rgba(201,168,76,0.4)", maxHeight: "200px", overflowY: "auto", zIndex: 30, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
   acOption: { padding: "0.55rem 0.75rem", fontSize: 14, color: "#ccc", cursor: "pointer", transition: "background 0.12s, color 0.12s" },
+
+  // ── Mobile overrides (spread on top of the base entry above the 640px hook) ──
+  touchTarget: { minHeight: "44px" },
+  // 1rem is the floor that stops iOS Safari zooming the page on focus.
+  inputMobile: { fontSize: "1rem" },
+  selectMobile: { fontSize: "1rem" },
+  // auto-fill can still fit two 220px tracks on a wide phone in landscape.
+  formGridMobile: { gridTemplateColumns: "1fr" },
+  // The on-screen keyboard eats the bottom half of the viewport, so a fixed
+  // 200px dropdown ends up entirely behind it.
+  acDropdownMobile: { maxHeight: "min(200px, 40vh)" },
+  actionBtnMobile: { flex: 1, marginRight: 0 },
+
+  // ── Mobile event cards (replace the 8-column table below 640px) ──
+  // 1px gaps over a light background reproduce the hairline separators the
+  // table rows get from their borders, so the card list reads the same.
+  cardList: { display: "grid", gap: "1px", background: "#1a1a1a", borderTop: "1px solid #1a1a1a" },
+  card: { background: "#0d0d0d", padding: "1.25rem" },
+  cardField: { display: "flex", gap: "1rem", padding: "0.35rem 0" },
+  cardLabel: { flexShrink: 0, width: "5.25rem", color: "#444", fontSize: "0.62rem", letterSpacing: "0.12em", textTransform: "uppercase", lineHeight: 1.9 },
+  cardValue: { minWidth: 0, color: "#777", fontSize: "0.85rem", lineHeight: 1.6, overflowWrap: "anywhere" },
+  cardActions: { display: "flex", gap: "0.5rem", marginTop: "1rem" },
+  // Bleed the inline form/confirm to the card's edges, mirroring the table's
+  // full-width colSpan={8} row.
+  cardInline: { margin: "1rem -1.25rem -1.25rem", borderTop: "2px solid rgba(201,168,76,0.25)" },
 };

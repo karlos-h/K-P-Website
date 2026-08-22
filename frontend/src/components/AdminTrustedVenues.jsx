@@ -1,7 +1,19 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const BLANK = { name: "", type: "", initials: "", website_url: "", logo_url: "", sort_order: "" };
+
+// One labelled field inside a mobile venue card. The desktop table gets its
+// column meaning from the <thead>; stacked cards have to carry their own.
+function CardField({ label, children }) {
+  return (
+    <div style={t.cardField}>
+      <span style={t.cardLabel}>{label}</span>
+      <span style={t.cardValue}>{children}</span>
+    </div>
+  );
+}
 
 // ── Row ───────────────────────────────────────────────────────────────────────
 
@@ -72,12 +84,79 @@ function VenueRow({ venue, isEditing, isDeleting, onEdit, onDeleteClick, onCance
   );
 }
 
+// ── Card (mobile) ─────────────────────────────────────────────────────────────
+
+// Mobile-only twin of VenueRow: seven columns behind a sideways scroll put Edit
+// and Delete off-screen on a phone. Same props and the same edit/delete state
+// machine as the row — only the markup differs. Rendered below 640px only, so
+// the touch-target styles are unconditional here.
+function VenueCard({ venue, isEditing, isDeleting, onEdit, onDeleteClick, onCancelEdit, onCancelDelete, onSave, onConfirmDelete, saving }) {
+  return (
+    <div style={t.card}>
+      <CardField label="Name">
+        <span style={{ color: "#f0ece3", fontWeight: 500 }}>{venue.name}</span>
+      </CardField>
+      <CardField label="Type">{venue.type || "—"}</CardField>
+      <CardField label="Initials">{venue.initials || "—"}</CardField>
+      <CardField label="Website">
+        {venue.website_url ? (
+          <a href={venue.website_url} target="_blank" rel="noopener noreferrer" style={t.link}>{venue.website_url}</a>
+        ) : "—"}
+      </CardField>
+      <CardField label="Logo">
+        {venue.logo_url ? (
+          <a href={venue.logo_url} target="_blank" rel="noopener noreferrer" style={t.link}>Logo set</a>
+        ) : "—"}
+      </CardField>
+      <CardField label="Sort">{venue.sort_order ?? "—"}</CardField>
+
+      <div style={t.cardActions}>
+        {!isEditing && !isDeleting ? (
+          <>
+            <button style={{ ...t.actionBtn, ...t.touchTarget, ...t.actionBtnMobile }} onClick={() => onEdit(venue)}>Edit</button>
+            <button style={{ ...t.actionBtn, ...t.deleteBtn, ...t.touchTarget, ...t.actionBtnMobile }} onClick={() => onDeleteClick(venue.id)}>Delete</button>
+          </>
+        ) : (
+          <button
+            style={{ ...t.cancelInlineBtn, ...t.touchTarget, ...t.actionBtnMobile }}
+            onClick={isEditing ? onCancelEdit : onCancelDelete}
+          >
+            ✕ Cancel
+          </button>
+        )}
+      </div>
+
+      {/* Inline edit form */}
+      {isEditing && (
+        <div style={t.cardInline}>
+          <VenueForm initial={venue} onSave={onSave} onCancel={onCancelEdit} saving={saving} />
+        </div>
+      )}
+
+      {/* Inline delete confirm */}
+      {isDeleting && (
+        <div style={{ ...t.cardInline, background: "#0d0808", borderTop: "2px solid rgba(224,92,92,0.2)", padding: "1rem", display: "grid", gap: "0.75rem" }}>
+          <span style={{ fontSize: 14, color: "#e07070" }}>
+            Delete <strong style={{ color: "#f0ece3" }}>{venue.name}</strong>? This removes it from the live homepage.
+          </span>
+          <button style={{ ...t.saveBtn, background: "#8b1a1a", ...t.touchTarget }} onClick={() => onConfirmDelete(venue)}>
+            Yes, delete
+          </button>
+          <button style={{ ...t.cancelBtn, ...t.touchTarget }} onClick={onCancelDelete}>Cancel</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Form ──────────────────────────────────────────────────────────────────────
 
 function VenueForm({ initial, onSave, onCancel, saving }) {
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({ ...BLANK, ...initial });
   const [error, setError] = useState("");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const input = { ...t.input, ...(isMobile ? t.inputMobile : {}) };
 
   const handleSubmit = () => {
     if (!form.name) {
@@ -95,24 +174,24 @@ function VenueForm({ initial, onSave, onCancel, saving }) {
       <div style={t.formGrid}>
         <label style={t.label}>
           <span style={t.labelText}>Name *</span>
-          <input style={t.input} value={form.name} onChange={e => set("name", e.target.value)} placeholder="Kong Bar" />
+          <input style={input} value={form.name} onChange={e => set("name", e.target.value)} placeholder="Kong Bar" />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Type</span>
-          <input style={t.input} value={form.type || ""} onChange={e => set("type", e.target.value)} placeholder="Bar" />
+          <input style={input} value={form.type || ""} onChange={e => set("type", e.target.value)} placeholder="Bar" />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Initials (fallback badge)</span>
-          <input style={t.input} value={form.initials || ""} onChange={e => set("initials", e.target.value)} placeholder="KB" maxLength={4} />
+          <input style={input} value={form.initials || ""} onChange={e => set("initials", e.target.value)} placeholder="KB" maxLength={4} />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Sort Order</span>
-          <input style={t.input} type="number" value={form.sort_order ?? ""} onChange={e => set("sort_order", e.target.value)} placeholder="1" />
+          <input style={input} type="number" value={form.sort_order ?? ""} onChange={e => set("sort_order", e.target.value)} placeholder="1" />
         </label>
         <label style={{ ...t.label, gridColumn: "1 / -1" }}>
           <span style={t.labelText}>Website URL</span>
           <input
-            style={t.input}
+            style={input}
             type="url"
             value={form.website_url || ""}
             onChange={e => set("website_url", e.target.value)}
@@ -122,7 +201,7 @@ function VenueForm({ initial, onSave, onCancel, saving }) {
         <label style={{ ...t.label, gridColumn: "1 / -1" }}>
           <span style={t.labelText}>Logo URL (optional — replaces the initials badge when set)</span>
           <input
-            style={t.input}
+            style={input}
             type="url"
             value={form.logo_url || ""}
             onChange={e => set("logo_url", e.target.value)}
@@ -133,13 +212,13 @@ function VenueForm({ initial, onSave, onCancel, saving }) {
 
       <div style={t.formActions}>
         <button
-          style={{ ...t.saveBtn, ...(saving ? t.saveBtnDisabled : {}) }}
+          style={{ ...t.saveBtn, ...(saving ? t.saveBtnDisabled : {}), ...(isMobile ? t.touchTarget : {}) }}
           onClick={handleSubmit}
           disabled={saving}
         >
           {saving ? "Saving…" : "Save Venue"}
         </button>
-        <button style={t.cancelBtn} onClick={onCancel}>Cancel</button>
+        <button style={{ ...t.cancelBtn, ...(isMobile ? t.touchTarget : {}) }} onClick={onCancel}>Cancel</button>
       </div>
     </div>
   );
@@ -148,6 +227,7 @@ function VenueForm({ initial, onSave, onCancel, saving }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminTrustedVenues({ venues, setVenues }) {
+  const isMobile = useIsMobile();
   const [editingId, setEditingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -203,7 +283,12 @@ export default function AdminTrustedVenues({ venues, setVenues }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
-        <button style={t.addBtn} onClick={() => { setEditingId("new"); setDeletingId(null); }}>+ Add Venue</button>
+        <button
+          style={{ ...t.addBtn, ...(isMobile ? t.touchTarget : {}) }}
+          onClick={() => { setEditingId("new"); setDeletingId(null); }}
+        >
+          + Add Venue
+        </button>
       </div>
 
       {saveError && <div style={t.errorBanner}>{saveError}</div>}
@@ -218,6 +303,29 @@ export default function AdminTrustedVenues({ venues, setVenues }) {
       )}
 
       <div style={t.tableCard}>
+        {isMobile ? (
+          sorted.length === 0 ? (
+            <div style={{ ...t.card, textAlign: "center", color: "#333", padding: "3rem" }}>No venues yet.</div>
+          ) : (
+            <div style={t.cardList}>
+              {sorted.map(v => (
+                <VenueCard
+                  key={v.id}
+                  venue={v}
+                  isEditing={editingId === v.id}
+                  isDeleting={deletingId === v.id}
+                  onEdit={v => { setEditingId(v.id); setDeletingId(null); }}
+                  onDeleteClick={id => { setDeletingId(id); setEditingId(null); }}
+                  onCancelEdit={() => setEditingId(null)}
+                  onCancelDelete={() => setDeletingId(null)}
+                  onSave={handleSave}
+                  onConfirmDelete={handleDelete}
+                  saving={saving}
+                />
+              ))}
+            </div>
+          )
+        ) : (
         <div style={t.tableWrap}>
           <table style={t.table}>
             <thead>
@@ -248,6 +356,7 @@ export default function AdminTrustedVenues({ venues, setVenues }) {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );
@@ -278,4 +387,24 @@ const t = {
   link: { color: "#C9A84C", textDecoration: "none" },
   actionBtn: { background: "transparent", border: "1px solid #222", color: "#666", padding: "0.3rem 0.75rem", fontSize: 12, cursor: "pointer", fontFamily: "inherit", marginRight: "0.4rem" },
   deleteBtn: { borderColor: "#3a1a1a", color: "#7a3a3a" },
+
+  // Shared 44px minimum for controls that are otherwise sized by padding alone.
+  touchTarget: { minHeight: "44px" },
+  // 1rem is the floor that stops iOS Safari zooming the page on focus.
+  inputMobile: { fontSize: "1rem" },
+  // Edit/Delete share the card's full width 50/50 instead of sitting inline.
+  actionBtnMobile: { flex: 1, marginRight: 0, fontSize: 13 },
+
+  // ── Mobile venue cards (replace the 7-column table below 640px) ──
+  // 1px gaps over a light background reproduce the hairline separators the
+  // table rows get from their borders, so the card list reads the same.
+  cardList: { display: "grid", gap: "1px", background: "#1a1a1a", borderTop: "1px solid #1a1a1a" },
+  card: { background: "#0d0d0d", padding: "1.25rem" },
+  cardField: { display: "flex", gap: "1rem", padding: "0.35rem 0" },
+  cardLabel: { flexShrink: 0, width: "5.25rem", color: "#444", fontSize: "0.62rem", letterSpacing: "0.12em", textTransform: "uppercase", lineHeight: 1.9 },
+  cardValue: { minWidth: 0, color: "#777", fontSize: "0.85rem", lineHeight: 1.6, overflowWrap: "anywhere" },
+  cardActions: { display: "flex", gap: "0.5rem", marginTop: "0.85rem" },
+  // Negative margins let the edit form / delete confirm bleed to the card edge,
+  // matching the full-width colSpan row the table path uses.
+  cardInline: { margin: "1rem -1.25rem -1.25rem" },
 };

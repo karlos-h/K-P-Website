@@ -358,7 +358,10 @@ p { color: var(--muted); line-height: 1.8; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1c1c1c; }
 .contact label { display: block; padding: 1.1rem 1.3rem .8rem; background: #0b0b0b; }
 .contact label span { display: block; color: #68655f; font-size: .61rem; letter-spacing: .14em; text-transform: uppercase; }
-.contact input, .contact textarea { width: 100%; padding: .65rem 0; border: 0; outline: 0; background: transparent; color: var(--cream); font-size: .9rem; }
+/* 1rem, not .9rem: iOS Safari zooms the page on focus for any field under 16px.
+   Not gated to a mobile breakpoint because the zoom trigger isn't width-gated —
+   a landscape phone or tablet is well over any breakpoint and still zooms. */
+.contact input, .contact textarea { width: 100%; padding: .65rem 0; border: 0; outline: 0; background: transparent; color: var(--cream); font-size: 1rem; }
 .form-message { margin-top: 1px; border: 1px solid #1c1c1c; }
 .form-submit { width: 100%; margin-top: 1rem; }
 .form-success { padding: 3rem; border: 1px solid var(--line); text-align: center; }
@@ -435,6 +438,9 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 /* Admin login page */
 .login-page {
   min-height: 100vh;
+  /* dvh tracks the visible viewport as mobile browser chrome collapses/expands;
+     the 100vh above stays first as the fallback for browsers without dvh. */
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -447,6 +453,11 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   border: 1px solid #1e1e1e;
   background: var(--panel);
   text-align: center;
+}
+
+@media (max-width: 480px) {
+  .login-page { padding: 1rem; }
+  .login-card { padding: 2.25rem 1.5rem; }
 }
 
 /* ── Nav external links ── */
@@ -1590,7 +1601,18 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   font-family: inherit;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  /* 44px touch target at every width — the existing padding alone left these
+     ~29px tall. Harmless on desktop, where the row is nowhere near this size. */
+  min-height: 44px;
+  /* The row scrolls horizontally on mobile; without this, two-word labels
+     ("Photo Upload", "Mailing List") break mid-label inside the strip. */
+  white-space: nowrap;
 }
+
+/* The tab row is the one piece of admin chrome with a class to hang CSS on.
+   Only the scrollbar-hiding lives here — a pseudo-element has no inline
+   equivalent. The row's layout stays in AdminDashboard's `s.tabRow`. */
+.admin-tab-row::-webkit-scrollbar { display: none; }
 .admin-tab-btn:hover,
 .admin-tab-btn:focus,
 .admin-tab-btn:focus-visible,

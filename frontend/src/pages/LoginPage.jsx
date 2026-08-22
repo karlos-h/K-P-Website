@@ -61,12 +61,18 @@ export default function LoginPage() {
           <div className="contact" style={{ marginBottom: '1px' }}>
             <label>
               <span>Email</span>
+              {/* "username" (not "email") is the token password managers pair
+                  with the current-password field below to offer a saved login. */}
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="admin@example.com"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
               />
             </label>
           </div>
@@ -79,6 +85,7 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
+                autoComplete="current-password"
               />
             </label>
           </div>
