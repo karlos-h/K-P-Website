@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useCombinedGalleries } from "../hooks/useCombinedGalleries";
 import AdminPhotoUpload from "./AdminPhotoUpload";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const BUCKET = "event-photos";
 
@@ -25,6 +26,7 @@ function storagePath(url) {
 // ── Photo tile ────────────────────────────────────────────────────────────────
 
 function PhotoTile({ photo, onSetCover, onDelete, deleting }) {
+  const isMobile = useIsMobile();
   return (
     <div style={{ ...g.tile, borderColor: photo.is_cover ? "#C9A84C" : "#1a1a1a" }}>
       <img
@@ -33,16 +35,16 @@ function PhotoTile({ photo, onSetCover, onDelete, deleting }) {
         style={g.tileImg}
         loading="lazy"
       />
-      <div style={g.tileActions}>
+      <div style={{ ...g.tileActions, ...(isMobile ? g.tileActionsMobile : {}) }}>
         <button
-          style={{ ...g.tileBtn, ...(photo.is_cover ? g.tileBtnActive : {}) }}
+          style={{ ...g.tileBtn, ...(photo.is_cover ? g.tileBtnActive : {}), ...(isMobile ? { ...g.touchTarget, ...g.tileBtnMobile } : {}) }}
           onClick={() => onSetCover(photo)}
           title={photo.is_cover ? "Current cover" : "Set as cover"}
         >
           {photo.is_cover ? "★ Cover" : "☆ Cover"}
         </button>
         <button
-          style={{ ...g.tileBtn, ...g.tileBtnDelete }}
+          style={{ ...g.tileBtn, ...g.tileBtnDelete, ...(isMobile ? { ...g.touchTarget, ...g.tileBtnMobile } : {}) }}
           onClick={() => onDelete(photo)}
           disabled={deleting === photo.id}
         >
@@ -56,6 +58,7 @@ function PhotoTile({ photo, onSetCover, onDelete, deleting }) {
 // ── Gallery detail view ───────────────────────────────────────────────────────
 
 function GalleryDetail({ group, events, onBack, onRefresh }) {
+  const isMobile = useIsMobile();
   const [deleting, setDeleting] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [error, setError] = useState("");
@@ -141,7 +144,7 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
 
   return (
     <div>
-      <button style={g.backBtn} onClick={onBack}>← All galleries</button>
+      <button style={{ ...g.backBtn, ...(isMobile ? g.backBtnMobile : {}) }} onClick={onBack}>← All galleries</button>
 
       <div style={g.detailHeader}>
         <div>
@@ -162,10 +165,10 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
 
       {/* Linked event — editable so photos can be reassigned to the correct event */}
       {group.photos.length > 0 && (
-        <div style={g.relinkRow}>
+        <div style={{ ...g.relinkRow, ...(isMobile ? g.relinkRowMobile : {}) }}>
           <span style={g.relinkLabel}>Linked Event</span>
           <select
-            style={g.relinkSelect}
+            style={{ ...g.relinkSelect, ...(isMobile ? g.relinkSelectMobile : {}) }}
             value={linkedEventId}
             onChange={(e) => setLinkedEventId(e.target.value)}
           >
@@ -175,7 +178,7 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
             ))}
           </select>
           <button
-            style={{ ...g.relinkBtn, ...((!linkedEventId || linkedEventId === matchedEventId || relinking) ? g.relinkBtnDisabled : {}) }}
+            style={{ ...g.relinkBtn, ...(isMobile ? g.touchTarget : {}), ...((!linkedEventId || linkedEventId === matchedEventId || relinking) ? g.relinkBtnDisabled : {}) }}
             onClick={handleRelink}
             disabled={!linkedEventId || linkedEventId === matchedEventId || relinking}
           >
@@ -206,7 +209,7 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
       )}
 
       {/* Photo grid */}
-      <div style={g.photoGrid}>
+      <div style={{ ...g.photoGrid, ...(isMobile ? g.photoGridMobile : {}) }}>
         {group.photos.map(photo => (
           <PhotoTile
             key={photo.id}
@@ -236,6 +239,7 @@ function GalleryDetail({ group, events, onBack, onRefresh }) {
 // ── Gallery list ──────────────────────────────────────────────────────────────
 
 function GalleryList({ galleries, onSelect }) {
+  const isMobile = useIsMobile();
   if (galleries.length === 0) {
     return (
       <p style={{ color: "#444", padding: "3rem 0", textAlign: "center", fontSize: "0.85rem" }}>
@@ -270,9 +274,9 @@ function GalleryList({ galleries, onSelect }) {
                 {group.photo_gallery_url ? "External" : "No cover"}
               </div>
             )}
-            <div style={g.rowMeta}>
-              <span style={g.rowTitle}>{group.event_name}</span>
-              <span style={g.rowSub}>
+            <div style={{ ...g.rowMeta, ...(isMobile ? g.rowMetaMobile : {}) }}>
+              <span style={{ ...g.rowTitle, ...(isMobile ? g.rowTitleMobile : {}) }}>{group.event_name}</span>
+              <span style={{ ...g.rowSub, ...(isMobile ? g.rowSubMobile : {}) }}>
                 {formattedDate ?? "No date"} · {group.photos.length} photo{group.photos.length !== 1 ? "s" : ""}
                 {group.photo_gallery_url && " · Lightroom link"}
               </span>
@@ -323,7 +327,10 @@ export default function AdminGalleryManager({ events }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const g = {
+  touchTarget: { minHeight: "44px" },
   backBtn: { background: "transparent", border: "none", color: "#C9A84C", fontSize: "0.78rem", cursor: "pointer", padding: "0 0 1.5rem", fontFamily: "inherit" },
+  // base padding is bottom-only spacing before the header; mobile needs real padding on all sides to reach a ~44px tap target
+  backBtnMobile: { padding: "0.85rem 0.75rem 1.5rem 0", minHeight: "44px" },
   detailHeader: { marginBottom: "1.5rem" },
   detailLabel: { fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#C9A84C", margin: "0 0 0.25rem" },
   detailTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.6rem", margin: "0 0 0.25rem", color: "#f0ece3" },
@@ -331,8 +338,15 @@ const g = {
   externalLinkRow: { color: "#666", fontSize: "0.78rem", margin: "0.5rem 0 0" },
   externalLink: { color: "#C9A84C", wordBreak: "break-all" },
   relinkRow: { display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.25rem", padding: "0.85rem 1rem", background: "#0d0d0d", border: "1px solid #1a1a1a" },
+  // stack instead of relying on wrap: on narrow screens the select+button can overflow before wrap kicks in cleanly
+  relinkRowMobile: { flexDirection: "column", alignItems: "stretch" },
   relinkLabel: { fontSize: "0.62rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#555", flexShrink: 0 },
   relinkSelect: { flex: 1, minWidth: "220px", background: "#111", border: "1px solid #222", color: "#f0ece3", padding: "0.5rem 0.65rem", fontSize: "0.8rem", fontFamily: "inherit" },
+  // 1rem is the floor below which iOS Safari auto-zooms the page on input focus.
+  // minWidth 0 is load-bearing once the row stacks: a <select>'s min-content
+  // width is its longest option, and event titles are long enough to push the
+  // whole column past the card edge. Explicit width keeps it inside.
+  relinkSelectMobile: { fontSize: "1rem", minWidth: 0, width: "100%" },
   relinkBtn: { background: "#C9A84C", border: "none", color: "#090909", padding: "0.5rem 1.1rem", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit" },
   relinkBtnDisabled: { opacity: 0.4, cursor: "not-allowed" },
   errorBanner: { background: "rgba(224,92,92,0.1)", border: "1px solid rgba(224,92,92,0.3)", color: "#e07070", padding: "0.65rem 1rem", fontSize: "0.78rem", marginBottom: "1rem" },
@@ -340,17 +354,28 @@ const g = {
   deleteSolidBtn: { background: "#8b1a1a", border: "none", color: "#f0ece3", padding: "0.6rem 1.25rem", fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" },
   cancelBtn: { background: "transparent", border: "1px solid #333", color: "#666", padding: "0.6rem 1.25rem", fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" },
   photoGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.75rem" },
+  // fixed 2-col is more predictable than auto-fill at narrow widths and leaves room for each tile's two action buttons
+  photoGridMobile: { gridTemplateColumns: "repeat(2, 1fr)" },
   tile: { border: "1px solid #1a1a1a", background: "#0d0d0d", display: "flex", flexDirection: "column" },
   tileImg: { width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" },
   tileActions: { display: "flex", gap: "0.25rem", padding: "0.4rem" },
-  tileBtn: { flex: 1, background: "transparent", border: "1px solid #222", color: "#555", fontSize: "0.62rem", padding: "0.3rem 0.25rem", cursor: "pointer", fontFamily: "inherit" },
+  // wider gap on mobile so Cover/Delete aren't a mis-tap apart
+  tileActionsMobile: { gap: "0.6rem" },
+  // fontSize bumped at all widths (not just mobile): 0.62rem/~9.9px was close to unreadable everywhere
+  tileBtn: { flex: 1, background: "transparent", border: "1px solid #222", color: "#555", fontSize: "0.75rem", padding: "0.3rem 0.25rem", cursor: "pointer", fontFamily: "inherit" },
+  tileBtnMobile: { padding: "0.5rem 0.4rem" },
   tileBtnActive: { borderColor: "#C9A84C", color: "#C9A84C" },
   tileBtnDelete: { borderColor: "#3a1a1a", color: "#7a3a3a", flex: "none", padding: "0.3rem 0.6rem" },
   galleryList: { display: "grid", gap: "0.5rem" },
   galleryRow: { display: "flex", alignItems: "center", gap: "1rem", padding: "0.75rem 1rem", background: "#0d0d0d", border: "1px solid #1a1a1a", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.15s", width: "100%" },
   rowThumb: { width: "64px", height: "44px", objectFit: "cover", flexShrink: 0 },
   rowMeta: { flex: 1, display: "flex", flexDirection: "column", gap: "0.2rem" },
+  // flex items don't shrink below content size by default, which would defeat text-overflow — let this one shrink
+  rowMetaMobile: { minWidth: 0 },
   rowTitle: { color: "#f0ece3", fontSize: "0.88rem", fontWeight: 500 },
+  // span needs display:block for text-overflow to apply
+  rowTitleMobile: { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   rowSub: { color: "#555", fontSize: "0.72rem" },
+  rowSubMobile: { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   rowArrow: { color: "#333", fontSize: "0.85rem", flexShrink: 0 },
 };

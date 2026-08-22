@@ -8,9 +8,22 @@ import AdminGalleryManager from '../components/AdminGalleryManager'
 import AdminMailingList from '../components/AdminMailingList'
 import AdminTrustedVenues from '../components/AdminTrustedVenues'
 import AdminCrowdReview from '../components/AdminCrowdReview'
+import { useIsMobile } from '../hooks/useIsMobile'
+
+// One labelled field inside a mobile enquiry card. The desktop table gets its
+// column meaning from the <thead>; stacked cards have to carry their own.
+function CardField({ label, children }) {
+  return (
+    <div style={s.cardField}>
+      <span style={s.cardLabel}>{label}</span>
+      <span style={s.cardValue}>{children}</span>
+    </div>
+  )
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [user, setUser] = useState(null)
   const [enquiries, setEnquiries] = useState([])
   const [events, setEvents] = useState([])
@@ -79,21 +92,26 @@ export default function AdminDashboard() {
 
   return (
     <div style={s.page}>
-      <div style={s.topbar}>
+      <div style={{ ...s.topbar, ...(isMobile ? s.topbarMobile : {}) }}>
         <div style={s.topbarLeft}>
           <span style={s.logo}>K&amp;P</span>
           <span style={s.topbarTitle}>Admin</span>
         </div>
-        <div style={s.topbarRight}>
-          <span style={s.userEmail}>{user?.email}</span>
-          <a href="/" style={s.siteLink}>← View Site</a>
-          <button onClick={handleLogout} style={s.logoutBtn}>Log Out</button>
+        <div style={{ ...s.topbarRight, ...(isMobile ? s.topbarRightMobile : {}) }}>
+          {/* The email is the only item here that identifies nothing actionable,
+              so it is the one that goes when the bar runs out of width. */}
+          {!isMobile && <span style={s.userEmail}>{user?.email}</span>}
+          <a href="/" style={{ ...s.siteLink, ...(isMobile ? s.siteLinkMobile : {}) }}>← View Site</a>
+          <button onClick={handleLogout} style={{ ...s.logoutBtn, ...(isMobile ? s.touchTarget : {}) }}>Log Out</button>
         </div>
       </div>
 
-      <div style={s.content}>
+      <div style={{ ...s.content, ...(isMobile ? s.contentMobile : {}) }}>
         {/* ── Tab selector ── */}
-        <div style={s.tabRow}>
+        {/* Seven tabs are far wider than a phone. They scroll sideways as a
+            strip rather than wrapping, so the row keeps a predictable height
+            and every tab stays reachable. */}
+        <div className="admin-tab-row" style={{ ...s.tabRow, ...(isMobile ? s.tabRowMobile : {}) }}>
           {[['enquiries', 'Enquiries'], ['events', 'Events'], ['gallery', 'Gallery'], ['photos', 'Photo Upload'], ['crowdpov', 'Crowd POV'], ['mailing', 'Mailing List'], ['venues', 'Venues']].map(([id, label]) => (
             <button
               key={id}
@@ -130,7 +148,7 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'enquiries' && <>
-        <div style={s.statsRow}>
+        <div style={{ ...s.statsRow, ...(isMobile ? s.statsRowMobile : {}) }}>
           {[
             { label: 'Total', value: counts.all, color: '#C9A84C' },
             { label: 'New', value: counts.new, color: '#5b9cf6' },
@@ -151,6 +169,7 @@ export default function AdminDashboard() {
               {['all', 'new', 'reviewed', 'booked'].map(f => (
                 <button key={f} onClick={() => setFilter(f)} style={{
                   ...s.filterBtn,
+                  ...(isMobile ? s.touchTarget : {}),
                   ...(filter === f ? s.filterBtnActive : {})
                 }}>
                   {f.charAt(0).toUpperCase() + f.slice(1)} ({counts[f] ?? enquiries.length})
@@ -161,6 +180,46 @@ export default function AdminDashboard() {
 
           {filtered.length === 0 ? (
             <p style={s.empty}>No enquiries yet.</p>
+          ) : isMobile ? (
+            /* The status <select> is the only control in a row, and in the
+               table it sits in the last of seven columns — unreachable on a
+               phone without scrolling the full width across. Stacked cards put
+               it directly under the enquiry it belongs to. */
+            <div style={s.cardList}>
+              {filtered.map(e => (
+                <div key={e.id} style={s.card}>
+                  <CardField label="Date">
+                    {new Date(e.created_at).toLocaleDateString('en-NZ', {
+                      day: 'numeric', month: 'short', year: 'numeric'
+                    })}
+                  </CardField>
+                  <CardField label="Name">
+                    <span style={{ color: '#f0ece3', fontWeight: 500 }}>{e.name}</span>
+                  </CardField>
+                  <CardField label="Company">{e.company || '—'}</CardField>
+                  <CardField label="Event">{e.event_type || '—'}</CardField>
+                  <CardField label="Email">
+                    <a href={`mailto:${e.email}`} style={s.emailLink}>{e.email}</a>
+                  </CardField>
+                  <CardField label="Message">{e.message}</CardField>
+                  <select
+                    value={e.status || 'new'}
+                    onChange={ev => updateStatus(e.id, ev.target.value)}
+                    style={{
+                      ...s.statusSelect,
+                      ...s.statusSelectMobile,
+                      color: e.status === 'booked' ? '#5ec97a'
+                        : e.status === 'reviewed' ? '#aaa'
+                        : '#5b9cf6'
+                    }}
+                  >
+                    <option value="new">New</option>
+                    <option value="reviewed">Reviewed</option>
+                    <option value="booked">Booked</option>
+                  </select>
+                </div>
+              ))}
+            </div>
           ) : (
             <div style={s.tableWrap}>
               <table style={s.table}>
@@ -223,16 +282,26 @@ export default function AdminDashboard() {
 const s = {
   page: { minHeight: '100vh', background: '#080808', color: '#f0ece3', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" },
   topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', height: '60px', background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', position: 'sticky', top: 0, zIndex: 100 },
+  topbarMobile: { padding: '0 1rem' },
+  topbarRightMobile: { gap: '0.85rem' },
+  // Shared 44px minimum for controls that are otherwise sized by padding alone.
+  touchTarget: { minHeight: '44px' },
   topbarLeft: { display: 'flex', alignItems: 'center', gap: '1rem' },
   logo: { fontFamily: "'Playfair Display', serif", color: '#C9A84C', fontSize: '1.1rem', letterSpacing: '0.1em' },
   topbarTitle: { color: '#555', fontSize: '0.75rem', letterSpacing: '0.1em' },
   topbarRight: { display: 'flex', alignItems: 'center', gap: '1.25rem' },
   userEmail: { color: '#444', fontSize: '0.75rem' },
   siteLink: { color: '#666', fontSize: '0.72rem', textDecoration: 'none' },
+  // A bare inline link is only as tall as its line-height (~15px). It sits in
+  // the topbar next to Log Out, so it needs the same target as a button.
+  siteLinkMobile: { display: 'inline-flex', alignItems: 'center', minHeight: '44px' },
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#888', padding: '0.4rem 1rem', fontSize: '0.7rem', cursor: 'pointer', fontFamily: 'inherit' },
   content: { padding: '2rem' },
+  contentMobile: { padding: '1rem' },
   tabRow: { display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid #1a1a1a', paddingBottom: '1rem' },
+  tabRowMobile: { flexWrap: 'nowrap', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' },
+  statsRowMobile: { gridTemplateColumns: 'repeat(2, 1fr)' },
   statCard: { background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '1.5rem', textAlign: 'center' },
   statValue: { fontSize: '2.5rem', fontWeight: 700, fontFamily: "'Playfair Display', serif", lineHeight: 1 },
   statLabel: { color: '#555', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: '0.5rem' },
@@ -251,4 +320,15 @@ const s = {
   emailLink: { color: '#C9A84C', textDecoration: 'none' },
   msgClamp: { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5, color: '#555' },
   statusSelect: { background: '#111', border: '1px solid #222', padding: '0.3rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' },
+  // 1rem is the floor that stops iOS Safari zooming the page on focus.
+  statusSelectMobile: { width: '100%', minHeight: '44px', marginTop: '1rem', padding: '0.5rem', fontSize: '1rem' },
+
+  // ── Mobile enquiry cards (replace the 7-column table below 640px) ──
+  // 1px gaps over a light background reproduce the hairline separators the
+  // table rows get from their borders, so the card list reads the same.
+  cardList: { display: 'grid', gap: '1px', background: '#1a1a1a', borderTop: '1px solid #1a1a1a' },
+  card: { background: '#0d0d0d', padding: '1.25rem' },
+  cardField: { display: 'flex', gap: '1rem', padding: '0.35rem 0' },
+  cardLabel: { flexShrink: 0, width: '5.25rem', color: '#444', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.9 },
+  cardValue: { minWidth: 0, color: '#777', fontSize: '0.85rem', lineHeight: 1.6, overflowWrap: 'anywhere' },
 }

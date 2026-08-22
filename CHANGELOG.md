@@ -5,6 +5,36 @@ Format: newest version first.
 
 ---
 
+## v5.30.0 — Admin dashboard: mobile optimisation across all 7 tabs
+
+### Added
+- **`frontend/src/hooks/useIsMobile.js`** — a `matchMedia` hook at the site's existing 640px breakpoint. None of the eight admin files use a single CSS `className`; every style is a local inline `style={{}}` object (`s.*`, `t.*`, `g.*`, `rs.*`, `c.*`), which no `@media` rule in `global.css` can reach. The hook is how a breakpoint gets into those objects at all. The one pre-existing exception, `.admin-tab-btn`, stays in CSS
+- **Stacked mobile cards replace all four admin tables** (Enquiries, Events, Mailing List, Trusted Venues) below 640px. Each was already inside an `overflowX: auto` wrapper, so nothing *broke* — but every one of them put its only controls (a status `<select>`, or Edit/Delete) in the last of 7–8 columns, so using them meant scrolling the full table width sideways first. Cards carry labelled field/value pairs with the actions at the bottom. The `<table>` markup is untouched and still renders above the breakpoint
+- Inline edit and delete-confirm work inside the cards on all three tables that have them. Editing is parent state with the row as a pure view, so the card is a second layout over the same state — no persistence logic moved
+
+### Fixed
+- **The tab row could strand four of the seven tabs.** `s.tabRow` was a plain `display: flex` with no wrap and no scroll: the seven tabs measure 861px against a 375px viewport, so Crowd POV, Mailing List and Venues had no way to be reached. It is now a horizontally scrollable strip (`.admin-tab-row` carries only the scrollbar-hiding pseudo-element; the layout stays inline)
+- `.admin-tab-btn` gains `min-height: 44px` and `white-space: nowrap` at all widths — it was ~29px tall, and the labels would otherwise break mid-phrase inside the scrolling strip
+- **Every interactive control in the admin area now has a ≥44px touch target on mobile** and **no text-entry field renders under 16px**, the threshold below which iOS Safari zooms the page on focus. Both were swept by measuring the live DOM, not by reading selectors — see Notes
+- Topbar drops to `1rem` padding and hides the user email (the only item there identifying nothing actionable); "View Site" and "Log Out" both reach 44px
+- Stats row becomes 2×2 instead of a squeezed 4-across
+- Gallery: photo grid is a fixed 2 columns; Cover/Delete tiles reach 44px and are spaced apart (Delete sat immediately beside Cover at ~20px tall — a real mis-tap risk); tile label font goes 0.62rem → 0.75rem **at all widths**, since 9.9px was near-unreadable on desktop too
+- Gallery relink row stacks vertically on mobile. `minWidth: 0` on the select is load-bearing there: a `<select>`'s min-content width is its longest option, and the event titles pushed the whole column 24px past the card edge
+- Crowd POV: Approve/Reject and both destructive-confirm dialogs reach 44px with wider separation between the confirm and cancel actions
+- Photo Upload: new-event fields stack to one column; Upload, Cover and the two mode toggles all reach 44px
+
+### Notes
+- Verified by mounting the real dashboard behind a temporary harness route with the Supabase singleton stubbed, then measuring the live DOM at 375px across all 7 tabs plus every add form, edit state, delete confirmation and the gallery detail view. The harness and its route were removed afterwards; `App.jsx` is unchanged
+- That sweep caught six touch targets the per-file specs had not listed: "View Site", "+ Add Event", the Events form's own Save/Cancel, Photo Upload's two mode toggles, and Gallery's "Save Link". All fixed
+- **Desktop is provably unchanged.** Every mobile value is a separate `*Mobile` sibling entry spread conditionally (`...(isMobile ? t.xMobile : {})`), so with `isMobile === false` each spread is `{}`. Confirmed by loading at 1280px: table present, 4-column stats, `0 32px` topbar padding, `minHeight: auto`, 11.52px status select. The two deliberate exceptions are the gallery tile font above and `.admin-tab-btn`'s 44px floor
+- **Not verified: reflow on live rotation.** The preview pane's viewport emulation dispatches neither `resize` nor `matchMedia` `change` events (both counters stayed at 0 across a resize), so no listener-based approach is exercisable there. Each width was verified by fresh load instead. Real browsers fire both, so rotation should reflow — but it is worth a spin on an actual phone
+- `AdminPhotoUpload`'s file input deliberately has no `capture` attribute, now recorded in a code comment: this screen is for bulk-uploading a photographer's existing shots, and `capture` would drop the photo-library option and force the camera
+- Venue sort-order arrows were considered and skipped: `sort_order` only reaches the DB through the full-row save, so arrows would mean touching the persistence path — a feature change, not a responsiveness fix. Sort order is still editable via the (now non-zooming) number input
+- Left as-is, flagged: `mailto:` and venue-website links inside cards are 16–38px tall. They are field *values* rather than action buttons, and padding them to 44px would put visible gaps through the card rows. Easy to change if the smaller target proves annoying in practice
+- Out of scope, for later: `CrowdPovModal.jsx` — the public-facing photo-submission form — has its own mobile issues (a sub-32px close button, sub-16px inputs, no scroll-into-view when the keyboard opens). Public-facing, so not touched here
+
+---
+
 ## v5.29.0 — Admin login page: mobile fixes
 
 ### Fixed

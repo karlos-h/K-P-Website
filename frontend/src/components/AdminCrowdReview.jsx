@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const PENDING_BUCKET = "crowd-pov-pending";
 const PUBLIC_BUCKET = "crowd-pov";
@@ -38,6 +39,7 @@ function storagePathFromUrl(url) {
 // ── Submission card ───────────────────────────────────────────────────────────
 
 function SubmissionCard({ submission, signedUrl, event, busy, onApprove, onRejectClick }) {
+  const isMobile = useIsMobile();
   const eventDate = event?.sort_date
     ? new Date(event.sort_date).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })
     : null;
@@ -60,16 +62,16 @@ function SubmissionCard({ submission, signedUrl, event, busy, onApprove, onRejec
         <p style={c.cardSub}>Submitted {submittedDate}</p>
         <p style={c.cardEmail}>{submission.email}</p>
       </div>
-      <div style={c.cardActions}>
+      <div style={{ ...c.cardActions, ...(isMobile ? c.cardActionsMobile : {}) }}>
         <button
-          style={{ ...c.approveBtn, ...(busy ? c.btnDisabled : {}) }}
+          style={{ ...c.approveBtn, ...(isMobile ? c.approveBtnMobile : {}), ...(busy ? c.btnDisabled : {}) }}
           onClick={() => onApprove(submission)}
           disabled={busy}
         >
           {busy ? "…" : "Approve"}
         </button>
         <button
-          style={{ ...c.rejectBtn, ...(busy ? c.btnDisabled : {}) }}
+          style={{ ...c.rejectBtn, ...(isMobile ? c.rejectBtnMobile : {}), ...(busy ? c.btnDisabled : {}) }}
           onClick={() => onRejectClick(submission)}
           disabled={busy}
         >
@@ -83,6 +85,7 @@ function SubmissionCard({ submission, signedUrl, event, busy, onApprove, onRejec
 // ── Reported (hidden) photo card ──────────────────────────────────────────────
 
 function ReportedCard({ card, event, busy, onRestore, onRemoveClick }) {
+  const isMobile = useIsMobile();
   const eventDate = event?.sort_date
     ? new Date(event.sort_date).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })
     : null;
@@ -116,16 +119,16 @@ function ReportedCard({ card, event, busy, onRestore, onRemoveClick }) {
           )}
         </div>
       </div>
-      <div style={c.cardActions}>
+      <div style={{ ...c.cardActions, ...(isMobile ? c.cardActionsMobile : {}) }}>
         <button
-          style={{ ...c.approveBtn, ...(busy ? c.btnDisabled : {}) }}
+          style={{ ...c.approveBtn, ...(isMobile ? c.approveBtnMobile : {}), ...(busy ? c.btnDisabled : {}) }}
           onClick={() => onRestore(card)}
           disabled={busy}
         >
           {busy ? "…" : "Restore"}
         </button>
         <button
-          style={{ ...c.rejectBtn, ...(busy ? c.btnDisabled : {}) }}
+          style={{ ...c.rejectBtn, ...(isMobile ? c.rejectBtnMobile : {}), ...(busy ? c.btnDisabled : {}) }}
           onClick={() => onRemoveClick(card)}
           disabled={busy}
         >
@@ -139,6 +142,7 @@ function ReportedCard({ card, event, busy, onRestore, onRemoveClick }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminCrowdReview({ events, adminUserId }) {
+  const isMobile = useIsMobile();
   const [submissions, setSubmissions] = useState([]);
   const [signedUrls, setSignedUrls] = useState({});
   const [loading, setLoading] = useState(true);
@@ -454,21 +458,24 @@ export default function AdminCrowdReview({ events, adminUserId }) {
             {confirmEvent ? ` (${confirmEvent.title})` : ""}? The file is deleted immediately.
           </p>
           <textarea
-            style={c.reasonInput}
+            style={{ ...c.reasonInput, ...(isMobile ? c.reasonInputMobile : {}) }}
             placeholder="Optional reason — for your own record only, never shown to the uploader"
             value={reasonText}
             onChange={(e) => setReasonText(e.target.value)}
             rows={2}
           />
-          <div style={{ display: "flex", gap: "0.75rem" }}>
+          <div style={{ display: "flex", gap: "0.75rem", ...(isMobile ? c.confirmActionsMobile : {}) }}>
             <button
-              style={c.deleteSolidBtn}
+              style={{ ...c.deleteSolidBtn, ...(isMobile ? c.deleteSolidBtnMobile : {}) }}
               onClick={() => handleReject(confirmReject)}
               disabled={busy === confirmReject.id}
             >
               {busy === confirmReject.id ? "Rejecting…" : "Yes, reject"}
             </button>
-            <button style={c.cancelBtn} onClick={() => { setConfirmReject(null); setReasonText(""); }}>
+            <button
+              style={{ ...c.cancelBtn, ...(isMobile ? c.cancelBtnMobile : {}) }}
+              onClick={() => { setConfirmReject(null); setReasonText(""); }}
+            >
               Cancel
             </button>
           </div>
@@ -480,7 +487,7 @@ export default function AdminCrowdReview({ events, adminUserId }) {
           No submissions waiting for review.
         </p>
       ) : (
-        <div style={c.cardGrid}>
+        <div style={{ ...c.cardGrid, ...(isMobile ? c.cardGridMobile : {}) }}>
           {submissions.map((submission) => (
             <SubmissionCard
               key={submission.id}
@@ -509,15 +516,20 @@ export default function AdminCrowdReview({ events, adminUserId }) {
               “removed”. This can't be undone — use Restore instead if the report
               doesn't hold up.
             </p>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
+            <div style={{ display: "flex", gap: "0.75rem", ...(isMobile ? c.confirmActionsMobile : {}) }}>
               <button
-                style={c.deleteSolidBtn}
+                style={{ ...c.deleteSolidBtn, ...(isMobile ? c.deleteSolidBtnMobile : {}) }}
                 onClick={() => handleRemove(confirmRemove)}
                 disabled={busy === confirmRemove.photo.id}
               >
                 {busy === confirmRemove.photo.id ? "Removing…" : "Yes, remove permanently"}
               </button>
-              <button style={c.cancelBtn} onClick={() => setConfirmRemove(null)}>Cancel</button>
+              <button
+                style={{ ...c.cancelBtn, ...(isMobile ? c.cancelBtnMobile : {}) }}
+                onClick={() => setConfirmRemove(null)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         )}
@@ -527,7 +539,7 @@ export default function AdminCrowdReview({ events, adminUserId }) {
             No reported photos.
           </p>
         ) : (
-          <div style={c.cardGrid}>
+          <div style={{ ...c.cardGrid, ...(isMobile ? c.cardGridMobile : {}) }}>
             {reported.map((card) => (
               <ReportedCard
                 key={card.photo.id}
@@ -547,14 +559,27 @@ export default function AdminCrowdReview({ events, adminUserId }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+// Shared min-height for tappable controls on mobile (Apple HIG / WCAG target size).
+const touchTarget = { minHeight: "44px" };
+
 const c = {
+  touchTarget,
   queueLabel: { fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#C9A84C", margin: "0 0 1.25rem" },
   errorBanner: { background: "rgba(224,92,92,0.1)", border: "1px solid rgba(224,92,92,0.3)", color: "#e07070", padding: "0.65rem 1rem", fontSize: "0.78rem", marginBottom: "1rem" },
   confirmBox: { background: "#0d0d0d", border: "1px solid rgba(224,92,92,0.3)", padding: "1.25rem 1.5rem", marginBottom: "1.25rem" },
   reasonInput: { width: "100%", boxSizing: "border-box", background: "#111", border: "1px solid #222", color: "#f0ece3", padding: "0.5rem 0.65rem", fontSize: "0.8rem", fontFamily: "inherit", resize: "vertical", marginBottom: "0.85rem" },
+  // 1rem is the floor below which iOS Safari auto-zooms the page on input focus.
+  reasonInputMobile: { fontSize: "1rem" },
   deleteSolidBtn: { background: "#8b1a1a", border: "none", color: "#f0ece3", padding: "0.6rem 1.25rem", fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" },
+  // Destructive confirm — generous padding plus confirmActionsMobile's wider gap
+  // keeps this from sitting close enough to Cancel to invite a mis-tap.
+  deleteSolidBtnMobile: { ...touchTarget, padding: "0.9rem 1.5rem", fontSize: "0.85rem" },
   cancelBtn: { background: "transparent", border: "1px solid #333", color: "#666", padding: "0.6rem 1.25rem", fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" },
+  cancelBtnMobile: { ...touchTarget, padding: "0.9rem 1.5rem", fontSize: "0.85rem" },
+  // Extra gap so the destructive and cancel buttons stay clearly separated at the larger tap size.
+  confirmActionsMobile: { gap: "1.25rem" },
   cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" },
+  cardGridMobile: { gap: "0.65rem" },
   card: { border: "1px solid #1a1a1a", background: "#0d0d0d", display: "flex", flexDirection: "column" },
   cardImg: { width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" },
   cardBody: { padding: "0.75rem 0.85rem", display: "flex", flexDirection: "column", gap: "0.25rem", flex: 1 },
@@ -562,8 +587,12 @@ const c = {
   cardSub: { color: "#555", fontSize: "0.72rem", margin: 0 },
   cardEmail: { color: "#666", fontSize: "0.72rem", margin: "0.25rem 0 0", wordBreak: "break-all" },
   cardActions: { display: "flex", gap: "0.5rem", padding: "0 0.85rem 0.85rem" },
+  // Wider gap between Approve/Reject so the bigger touch targets don't crowd each other.
+  cardActionsMobile: { gap: "1rem" },
   approveBtn: { flex: 1, background: "#C9A84C", border: "none", color: "#090909", padding: "0.5rem 0.75rem", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit" },
+  approveBtnMobile: { ...touchTarget, padding: "0.85rem 0.9rem", fontSize: "0.78rem" },
   rejectBtn: { background: "transparent", border: "1px solid #3a1a1a", color: "#7a3a3a", padding: "0.5rem 0.75rem", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit" },
+  rejectBtnMobile: { ...touchTarget, padding: "0.85rem 0.9rem", fontSize: "0.78rem" },
   btnDisabled: { opacity: 0.4, cursor: "not-allowed" },
   sectionDivider: { marginTop: "2.5rem", paddingTop: "1.75rem", borderTop: "1px solid #1a1a1a" },
   reportCount: { color: "#e07070", fontSize: "0.72rem", margin: "0.35rem 0 0", fontWeight: 500 },

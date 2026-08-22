@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { processAdminPhoto } from "../lib/processImage";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const BUCKET = "event-photos";
 
@@ -34,6 +35,7 @@ function jpegStorageName(name) {
 // ── Individual file row ───────────────────────────────────────────────────────
 
 function FileRow({ file, progress, error, isCover, onSetCover, publicUrl, compressing }) {
+  const isMobile = useIsMobile();
   const thumb = publicUrl ?? URL.createObjectURL(file);
   return (
     <div style={{ ...rs.fileRow, borderColor: isCover ? "#c9a84c" : "#1e1e1e" }}>
@@ -52,7 +54,7 @@ function FileRow({ file, progress, error, isCover, onSetCover, publicUrl, compre
         }
       </div>
       <button
-        style={{ ...rs.coverBtn, ...(isCover ? rs.coverBtnActive : {}) }}
+        style={{ ...rs.coverBtn, ...(isCover ? rs.coverBtnActive : {}), ...(isMobile ? rs.coverBtnMobile : {}) }}
         onClick={() => onSetCover(file.name)}
         title="Set as cover photo"
       >
@@ -66,6 +68,7 @@ function FileRow({ file, progress, error, isCover, onSetCover, publicUrl, compre
 
 export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultEventName, defaultEventDate }) {
   const fileInputRef = useRef(null);
+  const isMobile = useIsMobile();
 
   // When defaultSlug is provided (from gallery detail view), lock to that event.
   const lockedBySlug = !!defaultSlug;
@@ -210,7 +213,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
             {["existing", "new"].map((m) => (
               <button
                 key={m}
-                style={{ ...rs.toggleBtn, ...(mode === m ? rs.toggleBtnActive : {}) }}
+                style={{ ...rs.toggleBtn, ...(isMobile ? touchTarget : {}), ...(mode === m ? rs.toggleBtnActive : {}) }}
                 onClick={() => setMode(m)}
               >
                 {m === "existing" ? "Link to existing event" : "New event"}
@@ -220,7 +223,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
 
           {mode === "existing" ? (
             <select
-              style={rs.select}
+              style={{ ...rs.select, ...(isMobile ? rs.selectMobile : {}) }}
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
             >
@@ -230,14 +233,14 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
               ))}
             </select>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+            <div style={{ ...rs.newEventGrid, ...(isMobile ? rs.newEventGridMobile : {}) }}>
               <label style={rs.label}>
                 <span style={rs.labelText}>Event name</span>
-                <input style={rs.input} value={newEventName} onChange={(e) => setNewEventName(e.target.value)} placeholder="Original Sin" />
+                <input style={{ ...rs.input, ...(isMobile ? rs.inputMobile : {}) }} value={newEventName} onChange={(e) => setNewEventName(e.target.value)} placeholder="Original Sin" />
               </label>
               <label style={rs.label}>
                 <span style={rs.labelText}>Event date</span>
-                <input style={rs.input} type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} />
+                <input style={{ ...rs.input, ...(isMobile ? rs.inputMobile : {}) }} type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} />
               </label>
             </div>
           )}
@@ -250,6 +253,11 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
 
       {/* ── File picker ── */}
       <div style={rs.dropZone} onClick={() => fileInputRef.current?.click()}>
+        {/* No `capture` attribute here on purpose: this tool is mainly for bulk-
+            uploading photos an event photographer already shot (transferred from
+            a camera or someone's camera roll), not for shooting one at a time.
+            `capture` would force straight to the camera and hide the Photo
+            Library option that the default picker already offers on mobile. */}
         <input
           ref={fileInputRef}
           type="file"
@@ -291,7 +299,7 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
       {/* ── Actions ── */}
       <div style={rs.actions}>
         <button
-          style={{ ...rs.uploadBtn, ...(!canUpload ? rs.uploadBtnDisabled : {}) }}
+          style={{ ...rs.uploadBtn, ...(!canUpload ? rs.uploadBtnDisabled : {}), ...(isMobile ? rs.uploadBtnMobile : {}) }}
           onClick={upload}
           disabled={!canUpload}
         >
@@ -316,6 +324,9 @@ export default function AdminPhotoUpload({ events, onDone, defaultSlug, defaultE
 
 // ── Inline styles (matches AdminDashboard's dark aesthetic) ──────────────────
 
+// Shared floor for tappable controls on mobile (Apple/Material guidance).
+const touchTarget = { minHeight: "44px" };
+
 const rs = {
   panel: { background: "#0d0d0d", border: "1px solid #1a1a1a", padding: "1.75rem", marginTop: "2rem" },
   heading: { fontSize: "1rem", fontWeight: 500, marginBottom: "1.5rem", color: "#f0ece3" },
@@ -323,9 +334,14 @@ const rs = {
   toggleBtn: { background: "transparent", border: "1px solid #222", color: "#555", padding: "0.35rem 0.85rem", fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" },
   toggleBtnActive: { borderColor: "#C9A84C", color: "#C9A84C" },
   select: { width: "100%", background: "#111", border: "1px solid #222", color: "#f0ece3", padding: "0.6rem 0.75rem", fontSize: "0.82rem", fontFamily: "inherit", marginBottom: "0.75rem" },
+  // 1rem is the floor below which iOS Safari auto-zooms on input focus.
+  selectMobile: { fontSize: "1rem" },
   label: { display: "grid", gap: "0.3rem" },
   labelText: { fontSize: "0.65rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#555" },
   input: { background: "#111", border: "1px solid #222", color: "#f0ece3", padding: "0.55rem 0.75rem", fontSize: "0.82rem", fontFamily: "inherit" },
+  inputMobile: { fontSize: "1rem" },
+  newEventGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" },
+  newEventGridMobile: { gridTemplateColumns: "1fr" },
   slugPreview: { fontSize: "0.7rem", color: "#444", margin: "0.5rem 0 1rem" },
   code: { color: "#C9A84C", background: "#111", padding: "0.1rem 0.35rem", borderRadius: "2px" },
   dropZone: { border: "1px dashed #2a2a2a", padding: "2rem", textAlign: "center", cursor: "pointer", marginBottom: "1rem", transition: "border-color 0.2s" },
@@ -345,7 +361,12 @@ const rs = {
   errorText: { color: "#e05c5c", fontSize: "0.72rem" },
   coverBtn: { background: "transparent", border: "1px solid #2a2a2a", color: "#555", padding: "0.3rem 0.6rem", fontSize: "0.68rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 },
   coverBtnActive: { borderColor: "#C9A84C", color: "#C9A84C" },
+  // Sits right next to the thumbnail — easy to mis-tap at the base size, so
+  // bump to the 44px touch-target floor on mobile.
+  coverBtnMobile: { ...touchTarget, padding: "0.3rem 0.9rem", display: "flex", alignItems: "center", justifyContent: "center" },
   actions: { display: "flex", alignItems: "center", gap: "1rem" },
   uploadBtn: { background: "#C9A84C", border: "none", color: "#090909", padding: "0.7rem 1.75rem", fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit" },
   uploadBtnDisabled: { opacity: 0.45, cursor: "not-allowed" },
+  // The single most important action on the screen — give it a real touch target.
+  uploadBtnMobile: { ...touchTarget, display: "flex", alignItems: "center", justifyContent: "center" },
 };

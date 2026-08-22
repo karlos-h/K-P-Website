@@ -1602,7 +1602,18 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   font-family: inherit;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  /* 44px touch target at every width — the existing padding alone left these
+     ~29px tall. Harmless on desktop, where the row is nowhere near this size. */
+  min-height: 44px;
+  /* The row scrolls horizontally on mobile; without this, two-word labels
+     ("Photo Upload", "Mailing List") break mid-label inside the strip. */
+  white-space: nowrap;
 }
+
+/* The tab row is the one piece of admin chrome with a class to hang CSS on.
+   Only the scrollbar-hiding lives here — a pseudo-element has no inline
+   equivalent. The row's layout stays in AdminDashboard's `s.tabRow`. */
+.admin-tab-row::-webkit-scrollbar { display: none; }
 .admin-tab-btn:hover,
 .admin-tab-btn:focus,
 .admin-tab-btn:focus-visible,

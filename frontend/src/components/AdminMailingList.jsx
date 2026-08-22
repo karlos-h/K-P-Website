@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const BLANK = { first_name: "", last_name: "", email: "", event_title: "", subscribed: true, notes: "" };
 
@@ -116,12 +117,101 @@ function ContactRow({ contact, isEditing, isDeleting, onEdit, onDeleteClick, onC
   );
 }
 
+// ── Card (mobile) ─────────────────────────────────────────────────────────────
+
+// One labelled field inside a mobile contact card. The desktop table gets its
+// column meaning from the <thead>; stacked cards have to carry their own.
+function CardField({ label, children }) {
+  return (
+    <div style={t.cardField}>
+      <span style={t.cardLabel}>{label}</span>
+      <span style={t.cardValue}>{children}</span>
+    </div>
+  );
+}
+
+// Same props and the same parent-owned editingId/deletingId state as ContactRow
+// — only the layout differs. Edit/Delete live in the last of seven columns, so
+// on a phone the table forces a full-width sideways scroll to reach a 24px
+// target; stacked cards put both under the contact they act on.
+function ContactCard({ contact, isEditing, isDeleting, onEdit, onDeleteClick, onCancelEdit, onCancelDelete, onSave, onConfirmDelete, saving }) {
+  return (
+    <div
+      style={{
+        ...t.card,
+        background: isEditing ? "rgba(201,168,76,0.06)" : isDeleting ? "rgba(224,92,92,0.05)" : t.card.background,
+      }}
+    >
+      <CardField label="Name">
+        <span style={{ color: "#f0ece3", fontWeight: 500 }}>
+          {nameCell([contact.first_name, contact.last_name].filter(Boolean).join(" "))}
+        </span>
+      </CardField>
+      <CardField label="Email">
+        <a href={`mailto:${contact.email}`} style={t.emailLink}>{contact.email}</a>
+      </CardField>
+      <CardField label="Event">{contact.event_title || "—"}</CardField>
+      <CardField label="Subscribed">
+        <span style={{ color: contact.subscribed ? "#5ec97a" : "#555" }}>
+          {contact.subscribed ? "Yes" : "No"}
+        </span>
+      </CardField>
+      <CardField label="Source">{contact.source === "media_hub" ? "Media Hub" : contact.source}</CardField>
+
+      <div style={t.cardActions}>
+        {!isEditing && !isDeleting && (
+          <>
+            <button style={{ ...t.actionBtn, ...t.actionBtnMobile }} onClick={() => onEdit(contact)}>Edit</button>
+            <button style={{ ...t.actionBtn, ...t.deleteBtn, ...t.actionBtnMobile }} onClick={() => onDeleteClick(contact.id)}>Delete</button>
+          </>
+        )}
+        {(isEditing || isDeleting) && (
+          <button
+            style={{ ...t.cancelInlineBtn, ...t.cancelInlineBtnMobile }}
+            onClick={isEditing ? onCancelEdit : onCancelDelete}
+          >
+            ✕ Cancel
+          </button>
+        )}
+      </div>
+
+      {/* Inline edit form */}
+      {isEditing && (
+        <div style={{ marginTop: "0.9rem" }}>
+          <ContactForm initial={contact} onSave={onSave} onCancel={onCancelEdit} saving={saving} />
+        </div>
+      )}
+
+      {/* Inline delete confirm */}
+      {isDeleting && (
+        <div style={t.cardConfirm}>
+          <span style={{ fontSize: 14, color: "#e07070" }}>
+            Delete <strong style={{ color: "#f0ece3" }}>{displayName(contact)}</strong>?
+            Consider unsubscribing instead (edit → uncheck Subscribed) to keep the record — deleting removes it permanently.
+          </span>
+          <div style={t.cardActions}>
+            <button
+              style={{ ...t.saveBtn, ...t.touchTarget, background: "#8b1a1a", flex: 1 }}
+              onClick={() => onConfirmDelete(contact)}
+            >
+              Yes, delete
+            </button>
+            <button style={{ ...t.cancelBtn, ...t.touchTarget, flex: 1 }} onClick={onCancelDelete}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Form ──────────────────────────────────────────────────────────────────────
 
 function ContactForm({ initial, onSave, onCancel, saving }) {
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({ ...BLANK, ...initial });
   const [error, setError] = useState("");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const input = { ...t.input, ...(isMobile ? t.inputMobile : {}) };
 
   const handleSubmit = () => {
     if (!form.first_name || !form.last_name || !form.email) {
@@ -139,19 +229,19 @@ function ContactForm({ initial, onSave, onCancel, saving }) {
       <div style={t.formGrid}>
         <label style={t.label}>
           <span style={t.labelText}>First Name *</span>
-          <input style={t.input} value={form.first_name} onChange={e => set("first_name", e.target.value)} placeholder="Jane" />
+          <input style={input} value={form.first_name} onChange={e => set("first_name", e.target.value)} placeholder="Jane" />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Last Name *</span>
-          <input style={t.input} value={form.last_name} onChange={e => set("last_name", e.target.value)} placeholder="Smith" />
+          <input style={input} value={form.last_name} onChange={e => set("last_name", e.target.value)} placeholder="Smith" />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Email *</span>
-          <input style={t.input} type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="jane@example.com" />
+          <input style={input} type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="jane@example.com" />
         </label>
         <label style={t.label}>
           <span style={t.labelText}>Event (optional)</span>
-          <input style={t.input} value={form.event_title || ""} onChange={e => set("event_title", e.target.value)} placeholder="Wonderland Brisbane" />
+          <input style={input} value={form.event_title || ""} onChange={e => set("event_title", e.target.value)} placeholder="Wonderland Brisbane" />
         </label>
         <label style={{ ...t.label, flexDirection: "row", alignItems: "center", gap: "0.6rem", display: "flex" }}>
           <input
@@ -164,19 +254,19 @@ function ContactForm({ initial, onSave, onCancel, saving }) {
         </label>
         <label style={{ ...t.label, gridColumn: "1 / -1" }}>
           <span style={t.labelText}>Notes (optional)</span>
-          <textarea style={t.textarea} rows={3} value={form.notes || ""} onChange={e => set("notes", e.target.value)} placeholder="Any context worth keeping…" />
+          <textarea style={{ ...t.textarea, ...(isMobile ? t.inputMobile : {}) }} rows={3} value={form.notes || ""} onChange={e => set("notes", e.target.value)} placeholder="Any context worth keeping…" />
         </label>
       </div>
 
       <div style={t.formActions}>
         <button
-          style={{ ...t.saveBtn, ...(saving ? t.saveBtnDisabled : {}) }}
+          style={{ ...t.saveBtn, ...(isMobile ? t.touchTarget : {}), ...(saving ? t.saveBtnDisabled : {}) }}
           onClick={handleSubmit}
           disabled={saving}
         >
           {saving ? "Saving…" : "Save Contact"}
         </button>
-        <button style={t.cancelBtn} onClick={onCancel}>Cancel</button>
+        <button style={{ ...t.cancelBtn, ...(isMobile ? t.touchTarget : {}) }} onClick={onCancel}>Cancel</button>
       </div>
     </div>
   );
@@ -185,6 +275,7 @@ function ContactForm({ initial, onSave, onCancel, saving }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminMailingList({ contacts, setContacts }) {
+  const isMobile = useIsMobile();
   const [editingId, setEditingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -288,6 +379,21 @@ export default function AdminMailingList({ contacts, setContacts }) {
     return [...list].sort((a, b) => signupAt(b).localeCompare(signupAt(a)));
   }, [contacts, search, subscribedOnly]);
 
+  // Row and card are two layouts over the same parent-owned edit/delete state,
+  // so they take an identical prop set.
+  const rowProps = (c) => ({
+    contact: c,
+    isEditing: editingId === c.id,
+    isDeleting: deletingId === c.id,
+    onEdit: c => { setEditingId(c.id); setDeletingId(null); },
+    onDeleteClick: id => { setDeletingId(id); setEditingId(null); },
+    onCancelEdit: () => setEditingId(null),
+    onCancelDelete: () => setDeletingId(null),
+    onSave: handleSave,
+    onConfirmDelete: handleDelete,
+    saving,
+  });
+
   const handleExport = () => {
     const csv = toCsv(filtered);
     downloadCsv(csv, `mailing-list-${new Date().toISOString().slice(0, 10)}.csv`);
@@ -297,7 +403,7 @@ export default function AdminMailingList({ contacts, setContacts }) {
     <div>
       <div style={t.toolbar}>
         <input
-          style={{ ...t.input, maxWidth: "280px" }}
+          style={{ ...t.input, maxWidth: "280px", ...(isMobile ? t.inputMobile : {}) }}
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or email…"
@@ -312,13 +418,13 @@ export default function AdminMailingList({ contacts, setContacts }) {
           <span style={{ fontSize: 14, color: "#888" }}>Subscribed only</span>
         </label>
         <div style={{ flex: 1 }} />
-        <button style={t.cancelBtn} onClick={handleSync} disabled={syncing}>
+        <button style={{ ...t.cancelBtn, ...(isMobile ? t.touchTarget : {}) }} onClick={handleSync} disabled={syncing}>
           {syncing ? "Syncing…" : "Sync Now (Humanitix)"}
         </button>
-        <button style={t.cancelBtn} onClick={handleExport} disabled={filtered.length === 0}>
+        <button style={{ ...t.cancelBtn, ...(isMobile ? t.touchTarget : {}) }} onClick={handleExport} disabled={filtered.length === 0}>
           Export CSV
         </button>
-        <button style={t.addBtn} onClick={() => { setEditingId("new"); setDeletingId(null); }}>+ Add Contact</button>
+        <button style={{ ...t.addBtn, ...(isMobile ? t.touchTarget : {}) }} onClick={() => { setEditingId("new"); setDeletingId(null); }}>+ Add Contact</button>
       </div>
 
       {syncError && <div style={t.errorBanner}>{syncError}</div>}
@@ -349,6 +455,17 @@ export default function AdminMailingList({ contacts, setContacts }) {
       )}
 
       <div style={t.tableCard}>
+        {isMobile ? (
+          filtered.length === 0 ? (
+            <div style={t.emptyCard}>
+              {contacts.length === 0 ? "No contacts yet." : "No contacts match your search."}
+            </div>
+          ) : (
+            <div style={t.cardList}>
+              {filtered.map(c => <ContactCard key={c.id} {...rowProps(c)} />)}
+            </div>
+          )
+        ) : (
         <div style={t.tableWrap}>
           <table style={t.table}>
             <thead>
@@ -365,23 +482,12 @@ export default function AdminMailingList({ contacts, setContacts }) {
                   {contacts.length === 0 ? "No contacts yet." : "No contacts match your search."}
                 </td></tr>
               ) : filtered.map(c => (
-                <ContactRow
-                  key={c.id}
-                  contact={c}
-                  isEditing={editingId === c.id}
-                  isDeleting={deletingId === c.id}
-                  onEdit={c => { setEditingId(c.id); setDeletingId(null); }}
-                  onDeleteClick={id => { setDeletingId(id); setEditingId(null); }}
-                  onCancelEdit={() => setEditingId(null)}
-                  onCancelDelete={() => setDeletingId(null)}
-                  onSave={handleSave}
-                  onConfirmDelete={handleDelete}
-                  saving={saving}
-                />
+                <ContactRow key={c.id} {...rowProps(c)} />
               ))}
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );
@@ -415,4 +521,26 @@ const t = {
   emailLink: { color: "#C9A84C", textDecoration: "none" },
   actionBtn: { background: "transparent", border: "1px solid #222", color: "#666", padding: "0.3rem 0.75rem", fontSize: 12, cursor: "pointer", fontFamily: "inherit", marginRight: "0.4rem" },
   deleteBtn: { borderColor: "#3a1a1a", color: "#7a3a3a" },
+
+  // ── Mobile ────────────────────────────────────────────────────────────────
+  // Shared 44px minimum for controls that are otherwise sized by padding alone.
+  touchTarget: { minHeight: "44px" },
+  // 1rem is the floor that stops iOS Safari zooming the page on focus.
+  inputMobile: { fontSize: "1rem" },
+  // Edit/Delete split the card width evenly; marginRight is the table's
+  // inter-button gap, replaced here by the flex gap.
+  actionBtnMobile: { minHeight: "44px", flex: 1, marginRight: 0 },
+  cancelInlineBtnMobile: { minHeight: "44px", flex: 1 },
+  cardActions: { display: "flex", gap: "0.6rem", marginTop: "0.9rem" },
+  cardConfirm: { display: "grid", gap: "0.25rem", marginTop: "0.9rem" },
+  emptyCard: { textAlign: "center", color: "#333", padding: "3rem", fontSize: 14 },
+
+  // ── Mobile contact cards (replace the 7-column table below 640px) ──
+  // 1px gaps over a light background reproduce the hairline separators the
+  // table rows get from their borders, so the card list reads the same.
+  cardList: { display: "grid", gap: "1px", background: "#1a1a1a", borderTop: "1px solid #1a1a1a" },
+  card: { background: "#0d0d0d", padding: "1.25rem" },
+  cardField: { display: "flex", gap: "1rem", padding: "0.35rem 0" },
+  cardLabel: { flexShrink: 0, width: "5.25rem", color: "#444", fontSize: "0.62rem", letterSpacing: "0.12em", textTransform: "uppercase", lineHeight: 1.9 },
+  cardValue: { minWidth: 0, color: "#777", fontSize: "0.85rem", lineHeight: 1.6, overflowWrap: "anywhere" },
 };
