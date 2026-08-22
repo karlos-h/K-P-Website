@@ -358,7 +358,10 @@ p { color: var(--muted); line-height: 1.8; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1c1c1c; }
 .contact label { display: block; padding: 1.1rem 1.3rem .8rem; background: #0b0b0b; }
 .contact label span { display: block; color: #68655f; font-size: .61rem; letter-spacing: .14em; text-transform: uppercase; }
-.contact input, .contact textarea { width: 100%; padding: .65rem 0; border: 0; outline: 0; background: transparent; color: var(--cream); font-size: .9rem; }
+/* 1rem, not .9rem: iOS Safari zooms the page on focus for any field under 16px.
+   Not gated to a mobile breakpoint because the zoom trigger isn't width-gated —
+   a landscape phone or tablet is well over any breakpoint and still zooms. */
+.contact input, .contact textarea { width: 100%; padding: .65rem 0; border: 0; outline: 0; background: transparent; color: var(--cream); font-size: 1rem; }
 .form-message { margin-top: 1px; border: 1px solid #1c1c1c; }
 .form-submit { width: 100%; margin-top: 1rem; }
 .form-success { padding: 3rem; border: 1px solid var(--line); text-align: center; }
@@ -451,10 +454,6 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
   background: var(--panel);
   text-align: center;
 }
-
-/* Scoped to the login card so the shared public contact form keeps its .9rem
-   inputs. iOS Safari zooms the whole page on focus for anything under 16px. */
-.login-card .contact input { font-size: 1rem; }
 
 @media (max-width: 480px) {
   .login-page { padding: 1rem; }

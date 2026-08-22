@@ -5,6 +5,22 @@ Format: newest version first.
 
 ---
 
+## v5.30.1 — Public contact form: iOS zoom fix
+
+### Fixed
+- **Tapping any field in the public contact/booking form zoomed the page on iOS Safari.** Same root cause as the login page in v5.29.0: `.contact input, .contact textarea` was `.9rem` (14.4px), under the 16px threshold at which Safari zooms to fit a focused field. The base rule is now `1rem`, which fixes all five visible fields (name, company, event type, email, message) plus the honeypot in one line
+- Not gated behind a mobile breakpoint, for the same reason as the login fix: the zoom trigger isn't width-gated, so a landscape phone or tablet sits above any sensible breakpoint and would still zoom
+
+### Removed
+- `.login-card .contact input { font-size: 1rem; }` — the scoped override added in v5.29.0. The base rule now produces the same 16px, so the override was dead weight. Verified `/login` still renders both inputs at 16px from the base rule alone before deleting it
+
+### Notes
+- **Correction to the v5.30.0 and v5.29.0 entries.** Both said the Media Hub email gate shared this bug. It does not, and this was checked rather than assumed: `.email-gate__field input` has been `font-size: 1rem` all along, and the gate does not use the `.contact` class at all, so neither the old rule nor the new one has ever applied to it. Confirmed in the browser at `/media-hub` — the live input computes to 16px and nothing about that component changed here
+- Desktop appearance of the contact form changes slightly, as accepted: fields go 14.4px → 16px, which makes the contact section 14px taller (868px → 882px at 1280px). The two-column `.form-grid` is unaffected and still collapses to one column at ≤900px
+- `/login` is unchanged — card still 343×500 at 375px with the same `2.25rem 1.5rem` padding
+
+---
+
 ## v5.30.0 — Admin dashboard: mobile optimisation across all 7 tabs
 
 ### Added
