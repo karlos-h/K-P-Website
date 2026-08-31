@@ -10,6 +10,14 @@
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
+    <!-- Home-screen icon when added as a webapp (iOS "Add to Home Screen",
+         Android/Chrome install). apple-touch-icon.png / icon-192.png /
+         icon-512.png are Logo.png flattened onto white — iOS ignores alpha
+         on this icon and fills transparent areas black, which would hide
+         the logo's black wordmark. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
     <!-- Open Graph / Twitter Card. og:image and twitter:image point at
          /og-image.jpg, which does not exist yet — drop a real 1200x630px
          image at frontend/public/og-image.jpg before social previews will
