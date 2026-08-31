@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [contacts, setContacts] = useState([])
   const [venues, setVenues] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState('new')
   const [activeTab, setActiveTab] = useState('enquiries')
 
   useEffect(() => {
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
           <div style={s.tableHeader}>
             <h2 style={s.tableTitle}>Enquiries</h2>
             <div style={s.filters}>
-              {['all', 'new', 'reviewed', 'booked'].map(f => (
+              {['new', 'reviewed', 'booked', 'all'].map(f => (
                 <button key={f} onClick={() => setFilter(f)} style={{
                   ...s.filterBtn,
                   ...(isMobile ? s.touchTarget : {}),
@@ -247,7 +247,7 @@ export default function AdminDashboard() {
                       <td style={s.td}>
                         <a href={`mailto:${e.email}`} style={s.emailLink}>{e.email}</a>
                       </td>
-                      <td style={{ ...s.td, maxWidth: '200px' }}>
+                      <td style={{ ...s.td, maxWidth: '340px' }}>
                         <span title={e.message} style={s.msgClamp}>{e.message}</span>
                       </td>
                       <td style={s.td}>
@@ -318,7 +318,7 @@ const s = {
   tr: { borderBottom: '1px solid #111', transition: 'background 0.15s' },
   td: { padding: '0.85rem 1rem', color: '#777', verticalAlign: 'top' },
   emailLink: { color: '#C9A84C', textDecoration: 'none' },
-  msgClamp: { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5, color: '#555' },
+  msgClamp: { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5, color: '#555' },
   statusSelect: { background: '#111', border: '1px solid #222', padding: '0.3rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' },
   // 1rem is the floor that stops iOS Safari zooming the page on focus.
   statusSelectMobile: { width: '100%', minHeight: '44px', marginTop: '1rem', padding: '0.5rem', fontSize: '1rem' },
