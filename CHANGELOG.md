@@ -5,6 +5,17 @@ Format: newest version first.
 
 ---
 
+## v5.31.0 — Email notification on new booking enquiry; enquiries tab tweaks
+
+### Added
+- **`enquiry-notify` edge function.** Emails events@kavapyramids.com via Resend's HTTP API whenever a row is inserted into `enquiries` — previously the only way to find out was checking `/admin`. Triggered by a Supabase Database Webhook (dashboard-configured, not a migration), `verify_jwt` off to match `crowd-pov-cleanup`'s convention for non-user callers, guarded instead by a shared secret in `x-webhook-secret`. Deployed; **the webhook, `RESEND_API_KEY`, and `ENQUIRY_WEBHOOK_SECRET` still need manual setup — see README**
+
+### Changed
+- **Enquiries tab defaults to "New"** instead of "All" — the admin lands on what needs attention. Button order becomes New/Reviewed/Booked/All
+- **Enquiry message column widened** 200px → 340px, clamp raised 2 → 6 lines. `title` tooltip still covers anything longer; mobile card view was already unclamped
+
+---
+
 ## v5.30.1 — Public contact form: iOS zoom fix
 
 ### Fixed
