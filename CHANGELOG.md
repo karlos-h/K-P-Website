@@ -5,9 +5,10 @@ Format: newest version first.
 
 ---
 
-## v5.31.0 — Email notification on new booking enquiry; enquiries tab tweaks
+## v5.31.0 — Email notification on new booking enquiry; enquiries tab tweaks; home-screen icon
 
 ### Added
+- **Home-screen icon for "Add to Home Screen" (iOS/Android).** `apple-touch-icon` link and a `manifest.json`, both pointing at the new K&P logo. The source (`Logo.png`) is a transparent PNG; iOS ignores alpha on `apple-touch-icon` and fills transparent pixels black, which would hide this logo's black wordmark entirely, so all three generated sizes (180/192/512) are flattened onto white instead. `theme_color`/`background_color` reuse the `#0a0a0a` already set as the page's `theme-color` meta tag
 - **`enquiry-notify` edge function.** Emails events@kavapyramids.com via Resend's HTTP API whenever a row is inserted into `enquiries` — previously the only way to find out was checking `/admin`. Triggered by a Supabase Database Webhook (dashboard-configured, not a migration), `verify_jwt` off to match `crowd-pov-cleanup`'s convention for non-user callers, guarded instead by a shared secret in `x-webhook-secret`. Deployed; **the webhook, `RESEND_API_KEY`, and `ENQUIRY_WEBHOOK_SECRET` still need manual setup — see README**
 
 ### Changed
