@@ -5,6 +5,28 @@ Format: newest version first.
 
 ---
 
+## v5.32.0 — SEO foundation: keyword metadata, per-page head tags, artist schema, social preview
+
+### Added
+- **Keyword-targeted homepage title and description.** Now aimed at people booking hip hop & R&B DJs in NZ, Australia and worldwide (clubs, festivals, 21sts, parties, private events), not just the name "Kava & Pyramids"
+- **`MusicGroup` structured data (JSON-LD)** in `index.html`: genres, founding city, `areaServed` (NZ, Australia, worldwide), and `sameAs` links to Instagram, TikTok, SoundCloud and YouTube so Google can connect the profiles to one artist. `sameAs` must mirror `SOCIAL_LINKS` in `siteData.js`
+- **Per-page `<head>` for `/epk`, `/media-hub`, `/privacy-policy`.** A small build plugin in `vite.config.js` writes `dist/<route>.html` copies of `index.html` with each page's own title, description, canonical and `og:url`. Netlify serves these ahead of the SPA fallback, so crawlers and link-preview scrapers see the right tags without running JavaScript. The build fails if `index.html`'s tags stop matching the plugin's patterns
+- **Social preview image** `og-image.jpg` (1200×630 crop of `hero-fallback.jpg`), `og:image` now an absolute URL, plus `og:site_name`, `og:locale`, image size/alt
+- **Canonical tag** pointing at `https://kavapyramids.com/`
+- **`kavapyramids.netlify.app` → `kavapyramids.com` 301 redirect** so Google doesn't index a duplicate copy of the site. Matches that exact host only, so deploy previews and branch URLs still work
+
+### Changed
+- **Hero eyebrow** "Christchurch · New Zealand" → "Hip Hop & R&B DJs · Christchurch, NZ" (h1 and tagline unchanged)
+- **Booking section intro** now lists event types and regions, with weddings on request
+- **Sitemap:** added `<lastmod>`; removed `changefreq`/`priority`, which Google ignores
+- README live URL → `kavapyramids.com`
+
+### Notes
+- Gallery `alt` text left as the event name. It's already descriptive, and those images load from Supabase after render, so rewriting them had little SEO upside
+- No `keywords` meta tag (Google ignores it), no FAQ or review schema (Google no longer shows either for this kind of site)
+
+---
+
 ## v5.31.0 — Email notification on new booking enquiry; enquiries tab tweaks; home-screen icon
 
 ### Added
