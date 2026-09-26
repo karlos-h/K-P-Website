@@ -770,7 +770,7 @@ function HomePage() {
             <SectionHeading
               label="Contact"
               title="Book Kava & Pyramids"
-              copy="Clubs, festivals, 21sts, parties and private events across New Zealand, Australia and worldwide, with weddings on request. For bookings, event enquiries, and press, send the details below."
+              copy="We play clubs, festivals, 21sts, parties and private events across New Zealand, Australia and worldwide, and weddings on request. For bookings, event enquiries or press, send us the details below."
             />
             {formSent ? (
               <div className="form-success">

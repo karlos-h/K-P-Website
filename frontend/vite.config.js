@@ -13,10 +13,10 @@ const SITE = "https://kavapyramids.com";
 const ROUTE_META = {
   "media-hub": {
     title: "Event Photos | Kava & Pyramids",
-    description: "Browse photos from Kava & Pyramids events — club nights, festivals and parties across New Zealand and beyond.",
+    description: "Browse photos from Kava & Pyramids club nights, festivals and parties in New Zealand and overseas.",
   },
   epk: {
-    title: "Press Kit (EPK) | Kava & Pyramids — Hip Hop & R&B DJs",
+    title: "Kava & Pyramids Press Kit (EPK) | Hip Hop & R&B DJs",
     description: "Kava & Pyramids electronic press kit for promoters and media: bio, genres, gig history and booking contact for the Christchurch hip hop, R&B & global sounds DJ duo.",
   },
   "privacy-policy": {
