@@ -17,6 +17,17 @@
   # public keys out — this does NOT disable scanning for anything else.
   SECRETS_SCAN_OMIT_KEYS = "VITE_YOUTUBE_API_KEY,VITE_SUPABASE_ANON_KEY"
 
+# kavapyramids.com is the canonical domain; send the default Netlify subdomain
+# there so Google doesn't index a duplicate site. Matches that exact host only,
+# so deploy previews (deploy-preview-N--kavapyramids.netlify.app) and branch
+# URLs (main--kavapyramids.netlify.app) keep working. Must stay above the SPA
+# fallback — Netlify uses the first matching rule.
+[[redirects]]
+  from = "https://kavapyramids.netlify.app/*"
+  to = "https://kavapyramids.com/:splat"
+  status = 301
+  force = true
+
 # SPA fallback — every route (e.g. /admin, /media-hub) must serve index.html
 [[redirects]]
   from = "/*"

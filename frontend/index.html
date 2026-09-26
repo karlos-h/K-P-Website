@@ -3,10 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Official website of Kava & Pyramids, a DJ duo from Christchurch, New Zealand."
-    />
+    <!-- SEO: title/description/canonical/og:url are rewritten per route at build
+         time by the static-route-meta plugin in vite.config.js. Keep each tag on
+         one line so its regexes keep matching. -->
+    <title>Kava & Pyramids | Hip Hop & R&B DJs in NZ, AU & Worldwide</title>
+    <meta name="description" content="Book Christchurch DJ duo Kava & Pyramids for hip hop, R&B & global sounds at clubs, festivals, 21sts, parties & private events in NZ, Australia & worldwide." />
+    <link rel="canonical" href="https://kavapyramids.com/" />
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -18,30 +20,53 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Open Graph / Twitter Card. og:image and twitter:image point at
-         /og-image.jpg, which does not exist yet — drop a real 1200x630px
-         image at frontend/public/og-image.jpg before social previews will
-         show an image. Until then, previews will just show no image, not
-         a broken one. -->
-    <meta property="og:title" content="Kava & Pyramids" />
-    <meta
-      property="og:description"
-      content="Official website of Kava & Pyramids, a DJ duo from Christchurch, New Zealand."
-    />
+    <!-- Open Graph / Twitter Card. og-image.jpg is a 1200x630 crop of
+         hero-fallback.jpg; swap the file to change the social preview.
+         Image URLs must be absolute because several scrapers ignore relative ones. -->
+    <meta property="og:site_name" content="Kava & Pyramids" />
+    <meta property="og:locale" content="en_NZ" />
     <meta property="og:type" content="website" />
-    <!-- TODO: og:url below is a placeholder — no production domain is referenced
-         anywhere else in this repo. Update it once the real live domain is known. -->
+    <meta property="og:title" content="Kava & Pyramids | Hip Hop & R&B DJs in NZ, AU & Worldwide" />
+    <meta property="og:description" content="Book Christchurch DJ duo Kava & Pyramids for hip hop, R&B & global sounds at clubs, festivals, 21sts, parties & private events in NZ, Australia & worldwide." />
     <meta property="og:url" content="https://kavapyramids.com/" />
-    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:image" content="https://kavapyramids.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Kava & Pyramids DJing live" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Kava & Pyramids" />
-    <meta
-      name="twitter:description"
-      content="Official website of Kava & Pyramids, a DJ duo from Christchurch, New Zealand."
-    />
-    <meta name="twitter:image" content="/og-image.jpg" />
+    <meta name="twitter:title" content="Kava & Pyramids | Hip Hop & R&B DJs in NZ, AU & Worldwide" />
+    <meta name="twitter:description" content="Book Christchurch DJ duo Kava & Pyramids for hip hop, R&B & global sounds at clubs, festivals, 21sts, parties & private events in NZ, Australia & worldwide." />
+    <meta name="twitter:image" content="https://kavapyramids.com/og-image.jpg" />
 
-    <title>Kava & Pyramids</title>
+    <!-- Structured data: identifies K&P as a music act to Google. sameAs must
+         mirror SOCIAL_LINKS in src/data/siteData.js. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "MusicGroup",
+        "@id": "https://kavapyramids.com/#musicgroup",
+        "name": "Kava & Pyramids",
+        "alternateName": "K&P",
+        "url": "https://kavapyramids.com/",
+        "logo": "https://kavapyramids.com/media/images/Logo.png",
+        "image": "https://kavapyramids.com/og-image.jpg",
+        "description": "Christchurch-based DJ duo playing hip hop, R&B and global sounds at clubs, festivals, 21sts, parties and private events across New Zealand, Australia and worldwide.",
+        "genre": ["Hip Hop", "R&B", "Global Sounds"],
+        "foundingDate": "2023",
+        "foundingLocation": { "@type": "Place", "name": "Christchurch, New Zealand" },
+        "areaServed": [
+          { "@type": "Country", "name": "New Zealand" },
+          { "@type": "Country", "name": "Australia" },
+          "Worldwide"
+        ],
+        "sameAs": [
+          "https://www.instagram.com/kava_pyramids/",
+          "https://www.tiktok.com/@kavaxpyramids",
+          "https://soundcloud.com/kavapyramids",
+          "https://www.youtube.com/@KavaPyramids"
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

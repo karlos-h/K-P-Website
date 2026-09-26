@@ -313,7 +313,7 @@ function HomePage() {
             transform: `translateY(${scrollY * 0.25}px)`,
           }}
         >
-          <p className="eyebrow">Christchurch · New Zealand</p>
+          <p className="eyebrow">Hip Hop &amp; R&amp;B DJs · Christchurch, NZ</p>
           <h1>
             Kava <span>&amp; Pyramids</span>
           </h1>
@@ -770,7 +770,7 @@ function HomePage() {
             <SectionHeading
               label="Contact"
               title="Book Kava & Pyramids"
-              copy="For bookings, event enquiries, and press, send the details below."
+              copy="We play clubs, festivals, 21sts, parties and private events across New Zealand, Australia and worldwide, and weddings on request. For bookings, event enquiries or press, send us the details below."
             />
             {formSent ? (
               <div className="form-success">

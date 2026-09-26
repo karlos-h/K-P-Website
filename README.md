@@ -3,7 +3,7 @@
 Official site for **Kava & Pyramids**, a DJ duo based in Christchurch, New Zealand.
 A React SPA on a Supabase backend, deployed on Netlify.
 
-**Live:** https://kavapyramids.netlify.app
+**Live:** https://kavapyramids.com
 **Current release:** v5.23.0 — see [CHANGELOG.md](CHANGELOG.md)
 
 ---
