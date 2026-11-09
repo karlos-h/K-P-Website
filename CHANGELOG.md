@@ -5,6 +5,20 @@ Format: newest version first.
 
 ---
 
+## v5.34.3 — React Router security update, repo tidy
+
+### Security
+- **React Router updated from 7.17.0 to 7.18.5,** clearing one high and one moderate advisory on the production dependencies
+
+### Removed
+- `greptile.json`, left over from the ended Greptile trial
+- Three finished one-off prompts in `docs/`: `events-section-scroll-plan.md`, `trusted-venues-scroll-prompt.md`, `why-book-scroll-prompt.md`
+
+### Changed
+- `docs/media-workflow.md` now covers linking several albums to one event and how the Watch video list works
+
+---
+
 ## v5.34.2 — Homepage title leads with Christchurch DJ hire
 
 ### Changed
@@ -21,6 +35,8 @@ Format: newest version first.
 - The YouTube API key now allows `kavapyramids.com`, so new full-length uploads appear automatically
 - All `videos` rows now have their real upload date
 - Nine Halloween Takeover photos added through the admin upload (data only)
+- The `enquiry-notify` email from v5.31 is fully set up: a test enquiry reached events@ on 2026-11-09, and Resend stays as the sender
+- "Add Another Gallery" in the admin event form checked on the live site: it loads saved galleries, and adds and removes rows
 
 ---
 
