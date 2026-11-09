@@ -164,7 +164,7 @@ export default function MediaHubPage() {
 
       <footer>
         <p className="wordmark">KAVA &amp; PYRAMIDS</p>
-        <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
+        <p>Christchurch, New Zealand · events@kavapyramids.com</p>
         <div className="footer__links">
           <a href="/epk">Press Kit</a>
           <a href="/privacy-policy">Privacy Policy</a>

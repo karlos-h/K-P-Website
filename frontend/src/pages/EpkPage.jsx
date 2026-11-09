@@ -49,7 +49,7 @@ function EpkDownloadModal({ onClose }) {
             <h3>Download Starting</h3>
             <p style={{ marginBottom: "1.5rem" }}>
               Your EPK is downloading now. Feel free to reach out directly at{" "}
-              <a href="mailto:kavapyramids@gmail.com" style={{ color: "var(--gold)" }}>kavapyramids@gmail.com</a>.
+              <a href="mailto:events@kavapyramids.com" style={{ color: "var(--gold)" }}>events@kavapyramids.com</a>.
             </p>
             <button className="button button--gold" onClick={onClose}>Close</button>
           </div>
@@ -134,7 +134,7 @@ export default function EpkPage() {
                 <button className="button button--gold" onClick={() => setShowModal(true)}>
                   <Download size={15} /> Download EPK PDF
                 </button>
-                <a className="button button--outline" href="mailto:kavapyramids@gmail.com">
+                <a className="button button--outline" href="mailto:events@kavapyramids.com">
                   <Mail size={15} /> Email Us
                 </a>
               </div>
@@ -159,8 +159,7 @@ export default function EpkPage() {
               both celebratory and intentional.
             </p>
             <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>
-              Now they play out most weekends in Christchurch city as resident of the strip on Friday and Saturdays, 
-              alongside festival stages and international performances across New Zealand, Fiji, and Australia. 
+              Now they play clubs, university balls and private events around Christchurch most weekends, alongside festival stages and international performances across New Zealand, Fiji, and Australia. 
               The movement is growing.
             </p>
           </motion.div>
@@ -177,7 +176,7 @@ export default function EpkPage() {
               ))}
             </div>
             <div style={{ marginTop: "1.25rem" }}>
-              <p className="section-label">Weekly Residencies</p>
+              <p className="section-label">Residency History</p>
               {RESIDENCIES.map((r) => (
                 <p key={r.venue} style={{ color: "var(--muted)", display: "flex", gap: "0.6rem", alignItems: "center", marginBottom: "0.4rem" }}>
                   <Sparkles size={13} style={{ color: "var(--gold)", flexShrink: 0 }} />
@@ -275,8 +274,8 @@ export default function EpkPage() {
             <p style={{ color: "var(--muted)", marginBottom: "2rem" }}>
               For bookings, partnerships, press, and event enquiries:
             </p>
-            <a className="button button--gold" href="mailto:kavapyramids@gmail.com" style={{ marginBottom: "2.5rem", display: "inline-flex" }}>
-              <Mail size={15} /> kavapyramids@gmail.com
+            <a className="button button--gold" href="mailto:events@kavapyramids.com" style={{ marginBottom: "2.5rem", display: "inline-flex" }}>
+              <Mail size={15} /> events@kavapyramids.com
             </a>
             <div className="socials" style={{ justifyContent: "center" }}>
               {SOCIAL_LINKS.map((s) => (
@@ -291,7 +290,7 @@ export default function EpkPage() {
 
       <footer>
         <p className="wordmark">KAVA &amp; PYRAMIDS</p>
-        <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
+        <p>Christchurch, New Zealand · events@kavapyramids.com</p>
         <div className="footer__links">
           <a href="/media-hub">Photo Hub</a>
           <a href="/privacy-policy">Privacy Policy</a>

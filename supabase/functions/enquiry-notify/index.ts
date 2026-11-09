@@ -44,10 +44,7 @@ ${record.message ?? "—"}`;
     method: "POST",
     headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      // ponytail: sandbox sender works for any recipient on Resend's free
-      // tier without domain verification. Swap for a verified
-      // kavapyramids.com sender once that domain is added in Resend.
-      from: "Kava & Pyramids <onboarding@resend.dev>",
+      from: "Kava & Pyramids <notifications@kavapyramids.com>",
       to: ["events@kavapyramids.com"],
       reply_to: record.email,
       subject: `New booking enquiry from ${record.name ?? "unknown"}`,

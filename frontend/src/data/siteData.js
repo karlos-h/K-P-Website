@@ -22,8 +22,9 @@ export const GENRES = ["Hip-Hop", "R&B", "Pop", "Afrobeats", "Global Sounds"];
 // Subgenres currently in rotation on SoundCloud — signals an active, current ear rather than one fixed lane.
 export const EDGE_GENRES = ["Baile Funk", "Miami Bass", "Jersey Club"];
 
-// Current weekly residencies — a concrete, named proof point (not a vague "the scene" claim).
+// Weekly residencies they have held — a concrete, named proof point (not a vague "the scene" claim).
 export const RESIDENCIES = [
+  { venue: "Original Sin", night: "Fridays" },
   { venue: "Kong Bar", night: "Saturdays" },
 ];
 

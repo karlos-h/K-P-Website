@@ -95,7 +95,7 @@ export default function PrivacyPolicyPage() {
             unlocking the Media Hub photo gallery, submitting a photo through Crowd POV, or, for
             ticket purchasers, an opt-in captured at checkout through Humanitix. You can
             ask to be removed at any time by emailing{" "}
-            <a href="mailto:kavapyramids@gmail.com" style={{ color: "var(--gold)" }}>kavapyramids@gmail.com</a>.
+            <a href="mailto:events@kavapyramids.com" style={{ color: "var(--gold)" }}>events@kavapyramids.com</a>.
           </p>
           <p>
             Any future marketing emails will identify us clearly and include an easy way to
@@ -120,7 +120,7 @@ export default function PrivacyPolicyPage() {
           <p>
             If you appear in a photo someone else submitted and would like it taken
             down, contact us at{" "}
-            <a href="mailto:kavapyramids@gmail.com" style={{ color: "var(--gold)" }}>kavapyramids@gmail.com</a>{" "}
+            <a href="mailto:events@kavapyramids.com" style={{ color: "var(--gold)" }}>events@kavapyramids.com</a>{" "}
             and we'll remove it.
           </p>
         </Section>
@@ -148,7 +148,7 @@ export default function PrivacyPolicyPage() {
           <p>
             Under the Privacy Act 2020, you can ask what personal information we hold about you
             and request a correction — contact{" "}
-            <a href="mailto:kavapyramids@gmail.com" style={{ color: "var(--gold)" }}>kavapyramids@gmail.com</a>.
+            <a href="mailto:events@kavapyramids.com" style={{ color: "var(--gold)" }}>events@kavapyramids.com</a>.
           </p>
         </Section>
 
@@ -176,8 +176,8 @@ export default function PrivacyPolicyPage() {
             <p style={{ color: "var(--muted)", marginBottom: "2rem" }}>
               For any privacy-related questions or requests, contact us directly:
             </p>
-            <a className="button button--gold" href="mailto:kavapyramids@gmail.com" style={{ display: "inline-flex" }}>
-              <Mail size={15} /> kavapyramids@gmail.com
+            <a className="button button--gold" href="mailto:events@kavapyramids.com" style={{ display: "inline-flex" }}>
+              <Mail size={15} /> events@kavapyramids.com
             </a>
           </motion.div>
         </section>
@@ -185,7 +185,7 @@ export default function PrivacyPolicyPage() {
 
       <footer>
         <p className="wordmark">KAVA &amp; PYRAMIDS</p>
-        <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
+        <p>Christchurch, New Zealand · events@kavapyramids.com</p>
         <div className="footer__links">
           <a href="/media-hub">Photo Hub</a>
           <a href="/epk">Press Kit</a>

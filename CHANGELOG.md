@@ -5,6 +5,19 @@ Format: newest version first.
 
 ---
 
+## v5.33.0 — Public email moves to events@, residency copy corrected, MusicBrainz link
+
+### Changed
+- **Public contact email is now `events@kavapyramids.com`** on Home, EPK, Media Hub and Privacy Policy. `kavapyramids@gmail.com` is an alternate sign-in on the same Google account, so mail sent to it still reaches the same inbox
+- **Enquiry alerts** go to `events@kavapyramids.com` from `notifications@kavapyramids.com`. The deployed function had been pointed at the Gmail on 2026-09-01 because the domain had no MX record at the time; it does now, and `kavapyramids.com` is verified in Resend
+- **Residency copy.** Nothing on the site now claims a current regular residency. The EPK section is "Residency History" and lists Original Sin (Fridays) and Kong Bar (Saturdays)
+- **University balls** added to the bio and booking copy
+
+### Added
+- MusicBrainz added to `sameAs`, and `member` entries using stage names (DJ Kava, Pyramids), in the `MusicGroup` JSON-LD
+
+---
+
 ## v5.32.0 — SEO foundation: keyword metadata, per-page head tags, artist schema, social preview
 
 ### Added
