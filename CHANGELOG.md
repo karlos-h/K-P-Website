@@ -5,6 +5,14 @@ Format: newest version first.
 
 ---
 
+## v5.34.8 — Correct the year the duo formed
+
+### Fixed
+- **Formed in 2024, not 2023.** The Press Kit text on the homepage and the founding date in the search engine data now match the press kit PDF. The EPK page still says they began DJing in 2023, which is correct
+- **Press Kit text** now says they went professional in 2025
+
+---
+
 ## v5.34.7 — README rewritten for readers, CI added, repo tidy
 
 ### Added
