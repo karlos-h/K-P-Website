@@ -5,6 +5,22 @@ Format: newest version first.
 
 ---
 
+## v5.34.6 — Homepage reorder, alternating backgrounds, animated stats
+
+### Changed
+- **New homepage order:** Next Up now sits between Watch the Movement and Events, Watch comes before Listen, and Trusted By moves down to just above Gig History
+- **Top menu** updated to match: Home, Events, About, Watch, Listen, Gallery, Press Kit, Contact
+- **Section backgrounds alternate** between the existing black and grey all the way down the homepage, replacing several near-identical one-off shades
+
+### Added
+- **Animated stat icons** in gold rings: spinning vinyl, gathering crowd, rotating globe and swaying tent. Motion switches off for visitors who have reduced motion turned on
+- **Shows Played updates itself**, rounding the number of past events down to the nearest 10. The value set in the admin dashboard acts as a minimum
+
+### Fixed
+- The glow behind each stat was taking up space in the layout and pushing the content down. It now sits behind the number as intended
+
+---
+
 ## v5.34.5 — Events section moved up the homepage
 
 ### Changed

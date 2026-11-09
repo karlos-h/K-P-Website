@@ -197,15 +197,15 @@ p { color: var(--muted); line-height: 1.8; }
 .play-button svg { width: 20px; margin-left: 3px; }
 .movement__beats { display: flex; flex-direction: column; margin-bottom: 1.4rem; color: var(--cream); font-family: "Playfair Display", serif; font-size: 1.08rem; line-height: 1.65; }
 
-.stats { border-block: 1px solid #1b1b1b; background: var(--panel); }
 .stats__grid { display: grid; grid-template-columns: repeat(4, 1fr); }
 .stat-card { position: relative; padding: 3.3rem 1rem; text-align: center; }
 .stat-card:not(:last-child)::after { position: absolute; top: 25%; right: 0; width: 1px; height: 50%; background: #202020; content: ""; }
 .stat-card strong { position: relative; z-index: 1; display: block; color: var(--gold); font-family: "Playfair Display", serif; font-size: clamp(2.7rem, 5vw, 4.2rem); line-height: 1; }
 .stat-card span { position: relative; z-index: 1; display: block; margin-top: .8rem; color: #7b7872; font-size: .67rem; letter-spacing: .17em; text-transform: uppercase; }
-.stat-card__glow {
+.stat-card .stat-card__glow {
   position: absolute;
   z-index: 0;
+  margin-top: 0;
   top: 50%;
   left: 50%;
   width: 140px;
@@ -224,8 +224,28 @@ p { color: var(--muted); line-height: 1.8; }
 @media (prefers-reduced-motion: reduce) {
   .stat-card--active .stat-card__glow { animation: none; opacity: .5; }
 }
+.stat-card__icon { position: relative; z-index: 1; display: grid; place-items: center; width: 54px; height: 54px; margin: 0 auto 1.1rem; border: 1px solid rgba(201,168,76,.35); border-radius: 50%; color: var(--gold); }
+.stat-card__icon svg { width: 26px; height: 26px; overflow: visible; }
+.stat-icon__tent { transform-origin: 50% 100%; }
+.stat-icon__meridian { transform: scaleX(.45); transform-box: fill-box; transform-origin: center; }
+.stat-icon__meridian--b { transform: scaleX(.02); }
+.stat-icon__meridian--c { transform: scaleX(.8); }
+.stat-card--active .stat-icon__disc { animation: statIconSpin 3.2s linear infinite; }
+.stat-card--active .stat-icon__meridian { animation: statIconGlobe 4.5s ease-in-out infinite; }
+.stat-card--active .stat-icon__meridian--b { animation-delay: -1.5s; }
+.stat-card--active .stat-icon__meridian--c { animation-delay: -3s; }
+.stat-card--active .stat-icon__crowd-left { animation: statIconCrowdLeft 2.4s ease-in-out infinite alternate; }
+.stat-card--active .stat-icon__crowd-right { animation: statIconCrowdRight 2.4s ease-in-out infinite alternate; }
+.stat-card--active .stat-icon__tent { animation: statIconSway 3.6s ease-in-out infinite alternate; }
+@keyframes statIconSpin { to { transform: rotate(360deg); } }
+@keyframes statIconGlobe { from { transform: scaleX(1); } to { transform: scaleX(-1); } }
+@keyframes statIconCrowdLeft { from { transform: translateX(-1.5px); } to { transform: translateX(1px); } }
+@keyframes statIconCrowdRight { from { transform: translateX(1.5px); } to { transform: translateX(-1px); } }
+@keyframes statIconSway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .stat-card--active .stat-icon__disc, .stat-card--active .stat-icon__meridian, .stat-card--active .stat-icon__crowd-left, .stat-card--active .stat-icon__crowd-right, .stat-card--active .stat-icon__tent { animation: none; }
+}
 
-.trusted { background: #0a0a0a; }
 .trusted__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .7rem; }
 .trusted-card { display: block; min-height: 190px; padding: 1.7rem 1rem; border: 1px solid var(--line); text-align: center; transition: .25s ease; text-decoration: none; color: inherit; }
 .trusted-card:hover { border-color: rgba(201,168,76,.55); background: #0e0e0e; transform: translateY(-5px); }
@@ -234,7 +254,6 @@ p { color: var(--muted); line-height: 1.8; }
 .trusted-card h3 { margin-bottom: .45rem; font-size: 1rem; }
 .trusted-card p { margin: 0; color: #625f5a; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; }
 
-.featured-event { border-block: 1px solid #181818; background: #0b0b0b; }
 .featured-event__content { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: 3.5rem 0; }
 .featured-event h2 { margin-bottom: .35rem; font-size: clamp(2rem, 4vw, 3rem); }
 .featured-event p { margin: 0; }
@@ -971,7 +990,6 @@ footer p:not(.wordmark), footer small { color: #46433f; font-size: .68rem; lette
 }
 
 /* ── Social Feed Section ── */
-.social-feed-section { background: var(--panel); }
 .social-feed { width: 100%; }
 .social-feed behold-widget { display: block; width: 100%; }
 
