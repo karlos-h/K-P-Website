@@ -5,6 +5,14 @@ Format: newest version first.
 
 ---
 
+## v5.34.5 — Events section moved up the homepage
+
+### Changed
+- **Events section now sits directly under Watch the Movement**, above the stats, so visitors reach upcoming gigs sooner. Tabs, scrolling list and event data are unchanged
+- **Top menu order** is now Home, Events, About, Listen, matching the new page order
+
+---
+
 ## v5.34.4 — Build tool security update
 
 ### Security
