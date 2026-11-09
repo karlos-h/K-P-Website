@@ -5,6 +5,13 @@ Format: newest version first.
 
 ---
 
+## v5.34.4 — Build tool security update
+
+### Security
+- **Build tools updated: Vite 8.0.16 to 8.3.6, plus PostCSS and related packages.** Clears the 6 high advisories `npm audit` reported. These packages only build the site, so nothing about how it looks or works has changed
+
+---
+
 ## v5.34.3 — React Router security update, repo tidy
 
 ### Security
