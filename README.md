@@ -1,124 +1,83 @@
 # Kava & Pyramids website
 
-Official site for **Kava & Pyramids**, a DJ duo based in Christchurch, New Zealand. It's a React single-page app on a Supabase backend, deployed on Netlify.
+![Kava & Pyramids performing live](frontend/public/og-image.jpg)
 
-**Live:** https://kavapyramids.com · **Current release:** v5.34.4 (see [CHANGELOG.md](CHANGELOG.md))
+[![CI](https://github.com/karlos-h/K-P-Website/actions/workflows/ci.yml/badge.svg)](https://github.com/karlos-h/K-P-Website/actions/workflows/ci.yml)
 
-## What's on the site
+**Live site:** [kavapyramids.com](https://kavapyramids.com)
 
-| Route | What it is |
-|---|---|
-| `/` | Home page: hero reel, bio, upcoming and past events, mixes, watch carousel, social feeds, booking form |
-| `/media-hub` | Event photo galleries behind a soft email gate, plus Crowd POV photo submissions from attendees |
-| `/epk` | Electronic press kit: bio, genres, venues, press photos and a downloadable PDF |
-| `/privacy-policy` | Privacy policy, including how photo submissions are handled |
-| `/login` | Admin sign-in (Supabase Auth) |
-| `/admin` | Admin dashboard for events, galleries, photo uploads, trusted venues, the mailing list and Crowd POV review |
+The booking, press and media site for Kava & Pyramids, a DJ duo from Christchurch, New Zealand. Promoters can send a booking enquiry and download a press kit. Fans can find upcoming shows, play mixes and sets, browse event photos and submit their own.
 
-`ProtectedRoute` guards everything under `/admin`. It checks for an active Supabase session and also calls the `am_i_admin()` RPC, so an account has to be on the admin allowlist as well as signed in.
+Designed and built by [Karlos Hennings](https://www.linkedin.com/in/karlos-hennings-744a46253), one half of the duo, with AI coding assistance (Claude Code). Karlos set the requirements, made the product decisions and tested the features on the live site.
 
-## Crowd POV
+## What it does
 
-Attendees can submit their own photos from an event, and a photo only appears on the site after an admin approves it. The browser re-encodes each submission before upload, which strips EXIF data (phone photos carry GPS coordinates), converts HEIC to JPEG and caps the longest edge at 2000px. Pending submissions go to a private bucket, and only approved photos move to the public one. Any visitor can report a published photo. Reporting hides it straight away until an admin reviews it, and the hide can be reversed.
+- Upcoming and past shows, with ticket links, driven by the database so a new event needs no code change
+- SoundCloud mixes, a YouTube sets carousel, and Instagram and TikTok feeds
+- A booking enquiry form that emails the duo when someone submits it
+- An electronic press kit with a downloadable PDF
+- A media hub of event photo galleries, including credits and links for each photographer
+- Crowd POV, where people who attended a show submit their own photos for review
+- A private admin dashboard for running events, galleries, venues, enquiries, the mailing list and photo submissions without touching code
 
-## Stack
+## How it's built
 
-- **Frontend:** React 19, Vite 8, React Router 7, Framer Motion and Lucide icons. There's no CSS framework; the CSS is hand-written in `frontend/src/styles/`.
-- **Backend:** Supabase (Postgres with Row Level Security, Auth, Storage, Edge Functions, pg_cron).
-- **Hosting:** Netlify, configured entirely by the root `netlify.toml`.
+| Area | Tools |
+| --- | --- |
+| Frontend | React 19, Vite 8, React Router 7, Framer Motion, hand-written CSS |
+| Backend | Supabase: Postgres with row-level security, Auth, Storage, Edge Functions (Deno), pg_cron |
+| Hosting and CI | Netlify, GitHub Actions |
+| Integrations | Humanitix (ticketing), Resend (email), YouTube Data API, SoundCloud, Behold (Instagram), SociableKit (TikTok) |
 
-There's no custom server. Every write from the browser goes straight to Supabase and is authorised by RLS policies, not application code. That makes the migrations in `supabase/migrations/` the real security boundary, so read them before changing anything data-related.
-
-## Layout
-
-```
-frontend/          Vite + React SPA (the whole site)
-  src/
-    pages/         One file per route
-    components/    Shared UI + the Admin* dashboard panels
-    hooks/         useCombinedGalleries, useEventGalleries, useIsMobile
-    lib/           Supabase client, admin check, image processing, motion presets
-    data/          siteData.js (static copy: genres, venues, socials, timeline)
-    styles/        Hand-written CSS
-  public/          Favicon, EPK PDF, hero video, gallery placeholders, robots/sitemap
-supabase/
-  migrations/      Numbered SQL migrations: schema, RLS, storage policies, cron
-  functions/       Edge Functions (humanitix-sync, crowd-pov-cleanup, enquiry-notify)
-docs/              Design and behaviour notes for specific sections
-netlify.toml       Build config, SPA fallback, security headers
-CHANGELOG.md       Release history, newest first
-LICENSES.md        Third-party licence attribution (heic-to, LGPL-3.0)
+```mermaid
+flowchart LR
+  B[Visitor's browser] -->|loads the site| N[Netlify]
+  B -->|reads and form submissions| S[(Supabase: Postgres and Storage)]
+  E[Edge Functions] --> S
+  E --> H[Humanitix]
+  E --> R[Resend email]
+  C[pg_cron schedules] --> E
 ```
 
-## Local development
+There is no custom server. The browser talks to Supabase directly, so access rules live in the database rather than in application code.
 
-From `frontend/`:
+## Engineering notes
+
+- Row-level security policies control every table. Visitors can read public content and submit forms, but only allowlisted accounts can see enquiries or contact details. The rules are version-controlled in [`supabase/migrations`](supabase/migrations).
+- A security audit found policies that were broader than intended, some of which existed only in the live database. They were fixed and brought under version-controlled migrations.
+- Visitor photos are processed in the browser before upload ([`processImage.js`](frontend/src/lib/processImage.js)). Re-encoding removes EXIF data such as GPS coordinates, converts iPhone HEIC files to JPEG and caps the image size.
+- Submitted photos wait in a private storage bucket and only reach the public one after review. A visitor report hides a published photo straight away, and database-level caps limit abuse of the report and upload forms.
+- The ticketing sync adds buyers to the mailing list only when they opted in at checkout, and a later sync never resubscribes someone who has unsubscribed ([`humanitix-sync`](supabase/functions/humanitix-sync/index.ts)).
+- Scheduled database jobs mark past shows automatically and clear orphaned uploads every hour.
+- Each route gets its own static HTML head at build time, so search engines and link previews see the right title without running JavaScript. The build fails if those tags stop matching ([`vite.config.js`](frontend/vite.config.js)). The home page also carries `MusicGroup` structured data.
+- Public forms use honeypot fields to catch spam bots, and Netlify sends HSTS, frame-blocking and content-type security headers ([`netlify.toml`](netlify.toml)).
+
+## Project layout
+
+```
+frontend/    React app: pages, components, hooks, styles
+supabase/    Database migrations and Edge Functions
+docs/        Media workflow notes
+```
+
+## Running it locally
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-If PowerShell's execution policy blocks `npm.ps1` on Windows, use `npm.cmd` instead.
+The app connects to its hosted backend by default, so you don't need a setup file. Use `npm run lint` and `npm run build` to check changes.
 
-Other scripts:
+## Testing
 
-```bash
-npm run lint
-npm run build
-npm run preview
-```
+GitHub Actions runs ESLint and a production build on every push and pull request. There are no unit tests yet.
 
-## Environment variables
+## Release history
 
-The Supabase URL and anon key have committed fallbacks in `frontend/src/lib/supabase.js`, so the app runs without a `.env` file. This is deliberate. The anon key is a publishable key that ships in the browser bundle anyway, and RLS is what protects the data. Env vars still take precedence when they're set, so a deployment can point at a different project.
-
-| Variable | Purpose |
-|---|---|
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase publishable/anon key |
-| `VITE_YOUTUBE_API_KEY` | Read-only, HTTP-referrer-restricted, for the Watch carousel |
-
-Server-side secrets (`HUMANITIX_API_KEY`, `SITE_URL`, `RESEND_API_KEY`, `ENQUIRY_WEBHOOK_SECRET` and the Crowd POV cleanup token) are kept in Supabase Edge Function secrets and Vault. None of them belong in this repo or in a `VITE_` variable, because anything prefixed `VITE_` is inlined into the public bundle.
-
-## Database
-
-Migrations are numbered and applied in order. They're the source of truth for the schema, RLS policies, storage bucket rules and scheduled jobs.
-
-**Main tables:** `events`, `media_assets`, `mixes`, `stats`, `trusted_venues`, `enquiries`, `mailing_list`, `media_downloads`, `crowd_submissions`, `crowd_photos`, `crowd_photo_reports`, `admins`, `videos`, `epk_downloads`.
-
-**Storage buckets:** `event-photos` and `crowd-pov` are public. `crowd-pov-pending` is private and holds submissions waiting for review.
-
-There are three Edge Functions:
-
-- **humanitix-sync** pulls ticketed events from Humanitix. CORS is restricted by `SITE_URL` / `ALLOWED_ORIGINS`.
-- **crowd-pov-cleanup** is an hourly pg_cron job that deletes orphaned files from `crowd-pov-pending`. It authenticates with a shared token generated inside Postgres and stored in Vault.
-- **enquiry-notify** emails the booking inbox when a new enquiry is saved. A Supabase Database Webhook triggers it and authenticates with a shared secret.
-
-## Deploying
-
-Netlify builds from `main`. The root `netlify.toml` sets the base directory (`frontend`), build command (`npm run build`), publish directory (`dist`), the SPA fallback and security headers, so the Netlify dashboard needs no manual overrides.
-
-Release flow:
-
-1. Work on `develop` using conventional commits.
-2. Add a `CHANGELOG.md` entry (newest first).
-3. Tag `vX.Y.Z`.
-4. Run `git merge --no-ff develop` into `main` and push `main`. Netlify deploys on push.
-
-## Custom domain
-
-The site is served at [kavapyramids.com](https://kavapyramids.com), and `kavapyramids.netlify.app` 301-redirects there so search engines don't index a duplicate copy.
-
-## Media
-
-- Small, optimised launch assets go in `frontend/public/media/`.
-- Event photo galleries go in Supabase Storage.
-- Full DJ sets are embedded from YouTube or SoundCloud.
-- Camera originals stay in a private archive and are never committed.
-
-See [docs/media-workflow.md](docs/media-workflow.md) for the full process.
+Every release is tagged and described in [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 
-This isn't open source. All rights reserved. Third-party attribution is in [LICENSES.md](LICENSES.md).
+This project isn't open source. All rights reserved. Third-party attribution is in [LICENSES.md](LICENSES.md).

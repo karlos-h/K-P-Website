@@ -28,12 +28,9 @@ either one on its own.
 
 ## `functions/`
 
-- **`humanitix-sync`** — pulls ticketed events from Humanitix into `events`. CORS is restricted to `SITE_URL` / `ALLOWED_ORIGINS`.
+- **`humanitix-sync`** — pulls ticketed events from Humanitix into `events`. CORS is restricted to known site origins.
 - **`crowd-pov-cleanup`** — hourly `pg_cron` sweep removing orphaned files from `crowd-pov-pending`. Runs as an Edge Function because Supabase's `storage.protect_delete()` trigger blocks `delete from storage.objects`, and its documented escape hatch orphans the underlying bytes. Authenticated by a shared token generated inside Postgres and stored in Vault.
-- **`enquiry-notify`** — emails events@kavapyramids.com via Resend when a row is inserted into `enquiries`. Triggered by a Supabase Database Webhook (Database → Webhooks in the dashboard, not a migration — the webhook's header carries a secret, so it can't be committed to git). `verify_jwt` off, same as `crowd-pov-cleanup`; authenticated by a shared secret in `x-webhook-secret` instead. Manual setup:
-  1. Sign up at resend.com (free tier), get an API key
-  2. Set Edge Function secrets `RESEND_API_KEY` and `ENQUIRY_WEBHOOK_SECRET` (any random string, e.g. `openssl rand -hex 32`) — Dashboard → Edge Functions → Secrets, or `supabase secrets set`
-  3. Database → Webhooks → Create: table `enquiries`, event `Insert`, HTTP Request to the `enquiry-notify` function URL, header `x-webhook-secret: <the value from step 2>`
+- **`enquiry-notify`** — emails events@kavapyramids.com via Resend when a row is inserted into `enquiries`. Triggered by a Supabase Database Webhook configured in the dashboard and authenticated by a shared secret.
 
 ## Storage buckets
 
@@ -51,6 +48,5 @@ risk) and no GIF.
 Never commit a service-role key. The frontend uses only the publishable/anon key,
 which is safe in the bundle precisely because RLS is enforced.
 
-Server-side values (`HUMANITIX_API_KEY`, `SITE_URL`, the Crowd POV cleanup token)
-belong in Edge Function secrets and Vault — never in a `VITE_` variable, which
-Vite inlines into the public bundle.
+Server-side credentials live in Edge Function secrets and Vault, never in this
+repo or in a `VITE_` variable, which Vite inlines into the public bundle.
