@@ -5,6 +5,22 @@ Format: newest version first.
 
 ---
 
+## v5.34.7 — README rewritten for readers, CI added, repo tidy
+
+### Added
+- **GitHub Actions CI** runs ESLint and a production build on every push to `main` and `develop` and on pull requests
+- **Project credit** in the README, with a note on AI coding assistance
+
+### Changed
+- **README** rewritten around what the site does and how it's built, with a banner, architecture diagram and engineering notes linked to the code
+- **Repo docs** no longer list credential names, setup steps for server-side secrets, or admin routes
+- **GitHub About** now points at kavapyramids.com, with a shorter description and one duplicate topic removed
+
+### Removed
+- `CLAUDE.md` from version control; it stays on the local machine and is ignored, along with `.cursor/` and any `.env` file in the repo
+
+---
+
 ## v5.34.6 — Homepage reorder, alternating backgrounds, animated stats
 
 ### Changed
