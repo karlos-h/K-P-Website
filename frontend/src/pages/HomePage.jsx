@@ -34,7 +34,7 @@ import {
 import { supabase } from "../lib/supabase";
 import { revealProps, sceneProps } from "../lib/motion";
 
-const NAV_LINKS = ["Home", "About", "Events", "Listen", "Watch", "Gallery", "Press Kit", "Contact"];
+const NAV_LINKS = ["Home", "Events", "About", "Listen", "Watch", "Gallery", "Press Kit", "Contact"];
 const NAV_EXTERNAL = [
   { label: "MEDIA HUB", href: "/media-hub" },
   { label: "EPK", href: "/epk" },
@@ -376,6 +376,63 @@ function HomePage() {
           </Container>
         </motion.section>
 
+        <section id="events" className="section events">
+          <Container>
+            <SectionHeading
+              label="Events"
+              title="Upcoming & Past Highlights"
+              copy="From home city club nights to international festival stages."
+            />
+            <div className="tabs" role="tablist" aria-label="Event filters">
+              {["upcoming", "past"].map((tab) => (
+                <button
+                  key={tab}
+                  className={eventTab === tab ? "is-active" : ""}
+                  onClick={() => setEventTab(tab)}
+                  role="tab"
+                  aria-selected={eventTab === tab}
+                >
+                  {tab === "upcoming" ? "Upcoming Events" : "Past Highlights"}
+                </button>
+              ))}
+            </div>
+            <div className="events__list events__list--scrollable">
+              {filteredEvents.map((event, index) => (
+                <motion.article
+                  className="event-card"
+                  key={`${event.title}-${event.sort_date || index}`}
+                  {...revealProps(index * 0.04, prefersReducedMotion)}
+                >
+                  <div className="event-card__date">
+                    <CalendarDays size={18} />
+                    <span>{event.date}</span>
+                    {event.performance_time && (
+                      <span className="event-card__time">{event.performance_time}</span>
+                    )}
+                  </div>
+                  <div>
+                    <h3>{event.title}</h3>
+                    <p>{event.location}</p>
+                  </div>
+                  <div className="event-card__actions">
+                    <span className="pill">{event.type}</span>
+                    {event.ticket_url && (
+                      <a
+                        className="button button--gold event-card__tickets"
+                        href={event.ticket_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Buy Tickets
+                      </a>
+                    )}
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+          </Container>
+        </section>
+
         <section className="stats" ref={statsRef}>
           <Container>
             <div className="stats__grid">
@@ -503,63 +560,6 @@ function HomePage() {
             </div>
           </Container>
         </motion.section>
-
-        <section id="events" className="section events">
-          <Container>
-            <SectionHeading
-              label="Events"
-              title="Upcoming & Past Highlights"
-              copy="From home city club nights to international festival stages."
-            />
-            <div className="tabs" role="tablist" aria-label="Event filters">
-              {["upcoming", "past"].map((tab) => (
-                <button
-                  key={tab}
-                  className={eventTab === tab ? "is-active" : ""}
-                  onClick={() => setEventTab(tab)}
-                  role="tab"
-                  aria-selected={eventTab === tab}
-                >
-                  {tab === "upcoming" ? "Upcoming Events" : "Past Highlights"}
-                </button>
-              ))}
-            </div>
-            <div className="events__list events__list--scrollable">
-              {filteredEvents.map((event, index) => (
-                <motion.article
-                  className="event-card"
-                  key={`${event.title}-${event.sort_date || index}`}
-                  {...revealProps(index * 0.04, prefersReducedMotion)}
-                >
-                  <div className="event-card__date">
-                    <CalendarDays size={18} />
-                    <span>{event.date}</span>
-                    {event.performance_time && (
-                      <span className="event-card__time">{event.performance_time}</span>
-                    )}
-                  </div>
-                  <div>
-                    <h3>{event.title}</h3>
-                    <p>{event.location}</p>
-                  </div>
-                  <div className="event-card__actions">
-                    <span className="pill">{event.type}</span>
-                    {event.ticket_url && (
-                      <a
-                        className="button button--gold event-card__tickets"
-                        href={event.ticket_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Buy Tickets
-                      </a>
-                    )}
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          </Container>
-        </section>
 
         <section id="listen" className="section section--dark music">
           <Container>
