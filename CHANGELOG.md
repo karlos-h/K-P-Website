@@ -5,6 +5,18 @@ Format: newest version first.
 
 ---
 
+## v5.34.1 — All 16 sets show with the live YouTube feed
+
+### Fixed
+- **The Watch carousel stopped at 13 sets once the YouTube feed came back.** The feed reads the channel's latest 50 uploads, and Shorts use up that window, so the three oldest sets fell outside it. The carousel now merges the feed with the `videos` table, so older sets stay listed. If the feed goes down, the table still supplies everything
+
+### Notes
+- The YouTube API key now allows `kavapyramids.com`, so new full-length uploads appear automatically
+- All `videos` rows now have their real upload date
+- Nine Halloween Takeover photos added through the admin upload (data only)
+
+---
+
 ## v5.34.0 — Multiple gallery links per event, full video list, Halloween Takeover
 
 ### Added
