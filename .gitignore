@@ -18,3 +18,5 @@ media-originals/
 *.avi
 # Local Claude Code tool config — not project code
 .claude/
+.claude-flow/
+.swarm/
