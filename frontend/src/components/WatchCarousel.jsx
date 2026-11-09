@@ -10,12 +10,11 @@ import { hoverLift, revealProps } from "../lib/motion";
 // instead of the expensive search endpoint (100 units).
 const YOUTUBE_CHANNEL_ID = "UCKZqaAXvlPHU6sUEgQ7wfrw";
 const UPLOADS_PLAYLIST_ID = `UU${YOUTUBE_CHANNEL_ID.slice(2)}`;
-const LATEST_COUNT = 5;
 // Show full sets only, not Shorts. Shorts are ≤3 min; the sets run 40+ min, so
-// a 3-minute floor separates them cleanly. We pull a wider recent window and
+// a 3-minute floor separates them cleanly. We pull the API's maximum page and
 // filter it down, since the uploads playlist interleaves Shorts and full sets.
 const MIN_DURATION_SECONDS = 180;
-const CANDIDATE_COUNT = 25;
+const CANDIDATE_COUNT = 50;
 
 // Read-only, public-data API key. It is HTTP-referrer restricted to our own
 // domain in Google Cloud, so although it ships in the client bundle it only
@@ -77,10 +76,10 @@ function mapVideo(item) {
   };
 }
 
-// The channel's latest full sets, live from YouTube. Returns [] when no key is
+// The channel's full sets, live from YouTube. Returns [] when no key is
 // configured so the caller can fall through to the curated list. Two cheap
 // calls (1 quota unit each): the recent uploads, then their details so we can
-// drop Shorts by duration before taking the newest LATEST_COUNT.
+// drop Shorts by duration.
 async function fetchLatestFromYouTube() {
   if (!YOUTUBE_API_KEY) return [];
 
@@ -112,7 +111,7 @@ async function fetchLatestFromYouTube() {
     .map(mapVideo)
     .filter(Boolean);
 
-  return sortByNewest(fullSets).slice(0, LATEST_COUNT);
+  return sortByNewest(fullSets);
 }
 
 function VideoCard({ video, delay, reduceMotion, isActive, onPlay }) {

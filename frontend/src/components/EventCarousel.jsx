@@ -378,6 +378,18 @@ function ExternalGallerySection({ galleryUrl, photographerName, photographerUrl,
   );
 }
 
+// Further albums for events with more than one photographer.
+function ExtraGalleries({ galleries = [] }) {
+  return galleries.map((gallery) => (
+    <ExternalGallerySection
+      key={gallery.url}
+      galleryUrl={gallery.url}
+      photographerName={gallery.photographer_name}
+      photographerUrl={gallery.photographer_url}
+    />
+  ));
+}
+
 // ── External-only card (no native photos) ────────────────────────────────────
 
 function ExternalOnlyCard({ group, delay, reduceMotion }) {
@@ -406,6 +418,7 @@ function ExternalOnlyCard({ group, delay, reduceMotion }) {
         coverPhoto={null}
         placeholderGrid
       />
+      <ExtraGalleries galleries={group.extra_galleries} />
 
       {crowdPhotos.length > 0 && (
         <CrowdPovSection
@@ -539,6 +552,7 @@ export default function EventCarousel({ group, delay = 0 }) {
           photographerUrl={photographer_url}
         />
       )}
+      <ExtraGalleries galleries={group.extra_galleries} />
 
       {/* ── Crowd POV — approved visitor submissions ── */}
       {crowdPhotos.length > 0 && (
