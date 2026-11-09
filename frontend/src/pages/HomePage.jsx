@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   CalendarDays,
+  Disc3,
   Globe2,
   Instagram,
   Menu,
@@ -10,6 +11,8 @@ import {
   Play,
   Radio,
   Sparkles,
+  Star,
+  Tent,
   Ticket,
   Users,
   X,
@@ -34,7 +37,7 @@ import {
 import { supabase } from "../lib/supabase";
 import { revealProps, sceneProps } from "../lib/motion";
 
-const NAV_LINKS = ["Home", "Events", "About", "Listen", "Watch", "Gallery", "Press Kit", "Contact"];
+const NAV_LINKS = ["Home", "Events", "About", "Watch", "Listen", "Gallery", "Press Kit", "Contact"];
 const NAV_EXTERNAL = [
   { label: "MEDIA HUB", href: "/media-hub" },
   { label: "EPK", href: "/epk" },
@@ -81,11 +84,48 @@ function SectionHeading({ label, title, copy, align = "left" }) {
   );
 }
 
+function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <ellipse className="stat-icon__meridian" cx="12" cy="12" rx="10" ry="10" vectorEffect="non-scaling-stroke" />
+      <ellipse className="stat-icon__meridian stat-icon__meridian--b" cx="12" cy="12" rx="10" ry="10" vectorEffect="non-scaling-stroke" />
+      <ellipse className="stat-icon__meridian stat-icon__meridian--c" cx="12" cy="12" rx="10" ry="10" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+function CrowdIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="12" cy="8" r="3" />
+      <path d="M6.5 20v-1.5a5.5 5.5 0 0 1 11 0V20" />
+      <g className="stat-icon__crowd-left">
+        <circle cx="4.5" cy="10.5" r="2" />
+        <path d="M1 20v-1a3.5 3.5 0 0 1 3.5-3.5" />
+      </g>
+      <g className="stat-icon__crowd-right">
+        <circle cx="19.5" cy="10.5" r="2" />
+        <path d="M23 20v-1a3.5 3.5 0 0 0-3.5-3.5" />
+      </g>
+    </svg>
+  );
+}
+
+const STAT_ICONS = {
+  "Shows Played": <Disc3 className="stat-icon__disc" strokeWidth={1.5} />,
+  "Attendees Reached": <CrowdIcon />,
+  Countries: <GlobeIcon />,
+  Festivals: <Tent className="stat-icon__tent" strokeWidth={1.5} />,
+};
+
 function StatCard({ stat, active }) {
   const count = useCountUp(stat.value, 1800, active);
   return (
     <div className={`stat-card${active ? " stat-card--active" : ""}`}>
       <span className="stat-card__glow" aria-hidden="true" />
+      <div className="stat-card__icon" aria-hidden="true">{STAT_ICONS[stat.label] ?? <Star strokeWidth={1.5} />}</div>
       <strong>{count.toLocaleString()}{stat.suffix}</strong>
       <span>{stat.label}</span>
     </div>
@@ -153,6 +193,14 @@ function HomePage() {
   const [stats, setStats] = useState([]);
   const [trustedVenues, setTrustedVenues] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
+
+  // Shows Played steps up with every 10 past events listed, and never drops below the admin value.
+  const pastShowCount = events.filter((event) => event.status === "past").length;
+  const displayStats = stats.map((stat) => (
+    stat.label === "Shows Played"
+      ? { ...stat, value: Math.max(stat.value, Math.floor(pastShowCount / 10) * 10) }
+      : stat
+  ));
 
   // Fetch all dynamic data on mount
   useEffect(() => {
@@ -376,6 +424,27 @@ function HomePage() {
           </Container>
         </motion.section>
 
+        {nextEvent && (
+          <section className="featured-event section--dark">
+            <Container>
+              <motion.div className="featured-event__content" {...revealProps(0, prefersReducedMotion)}>
+                <div>
+                  <SectionLabel>Next Up</SectionLabel>
+                  <h2>{nextEvent.title}</h2>
+                  <p>{nextEvent.date} · {nextEvent.location}</p>
+                </div>
+                <div className="date-block">
+                  <span><strong>{nextEvent.date}</strong>{nextEvent.type}</span>
+                  <span>
+                    <strong>{nextEvent.location.split(",").pop().trim()}</strong>
+                    {nextEvent.location.split(",")[0].trim()}
+                  </span>
+                </div>
+              </motion.div>
+            </Container>
+          </section>
+        )}
+
         <section id="events" className="section events">
           <Container>
             <SectionHeading
@@ -433,69 +502,18 @@ function HomePage() {
           </Container>
         </section>
 
-        <section className="stats" ref={statsRef}>
+        <section className="stats section--dark" ref={statsRef}>
           <Container>
             <div className="stats__grid">
               {dataLoading
                 ? null
-                : stats.map((stat) => (
+                : displayStats.map((stat) => (
                     <StatCard stat={stat} active={statsVisible} key={stat.label} />
                 ))
             }
             </div>
           </Container>
         </section>
-
-        <section className="trusted section section--compact">
-          <Container>
-            <SectionHeading label="Trusted By" title="Stages That Know Our Energy" align="center" />
-            <div className="trusted__grid">
-              {trustedVenues.map((venue, index) => {
-                const Tag = venue.website_url ? motion.a : motion.article;
-                const linkProps = venue.website_url
-                  ? { href: venue.website_url, target: "_blank", rel: "noopener noreferrer" }
-                  : {};
-                return (
-                  <Tag
-                    className="trusted-card"
-                    key={venue.name}
-                    {...linkProps}
-                    {...revealProps(index * 0.06, prefersReducedMotion)}
-                  >
-                    {venue.logo_url ? (
-                      <img className="trusted-card__logo" src={venue.logo_url} alt={venue.name} />
-                    ) : (
-                      <div className="trusted-card__mark">{venue.initials}</div>
-                    )}
-                    <h3>{venue.name}</h3>
-                    <p>{venue.type}</p>
-                  </Tag>
-                );
-              })}
-            </div>
-          </Container>
-        </section>
-
-        {nextEvent && (
-          <section className="featured-event">
-            <Container>
-              <motion.div className="featured-event__content" {...revealProps(0, prefersReducedMotion)}>
-                <div>
-                  <SectionLabel>Next Up</SectionLabel>
-                  <h2>{nextEvent.title}</h2>
-                  <p>{nextEvent.date} · {nextEvent.location}</p>
-                </div>
-                <div className="date-block">
-                  <span><strong>{nextEvent.date}</strong>{nextEvent.type}</span>
-                  <span>
-                    <strong>{nextEvent.location.split(",").pop().trim()}</strong>
-                    {nextEvent.location.split(",")[0].trim()}
-                  </span>
-                </div>
-              </motion.div>
-            </Container>
-          </section>
-        )}
 
         <section id="about" className="section about">
           <Container>
@@ -561,6 +579,30 @@ function HomePage() {
           </Container>
         </motion.section>
 
+        <section id="watch" className="section videos">
+          <Container>
+            <SectionHeading
+              label="Watch"
+              title="See the Sets"
+              copy="Watch the latest full sets, event recaps, and behind the scenes from Kava & Pyramids."
+            />
+            <WatchCarousel />
+            <motion.div
+              style={{ textAlign: "center", marginTop: "3rem" }}
+              {...revealProps(0, prefersReducedMotion)}
+            >
+              <a
+                className="button button--outline"
+                href="https://www.youtube.com/@KavaPyramids"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Youtube size={17} /> Subscribe on YouTube
+              </a>
+            </motion.div>
+          </Container>
+        </section>
+
         <section id="listen" className="section section--dark music">
           <Container>
             <SectionHeading
@@ -581,30 +623,6 @@ function HomePage() {
                 rel="noreferrer"
               >
                 <Radio size={17} /> Follow on SoundCloud
-              </a>
-            </motion.div>
-          </Container>
-        </section>
-
-        <section id="watch" className="section videos">
-          <Container>
-            <SectionHeading
-              label="Watch"
-              title="See the Sets"
-              copy="Watch the latest full sets, event recaps, and behind the scenes from Kava & Pyramids."
-            />
-            <WatchCarousel />
-            <motion.div
-              style={{ textAlign: "center", marginTop: "3rem" }}
-              {...revealProps(0, prefersReducedMotion)}
-            >
-              <a
-                className="button button--outline"
-                href="https://www.youtube.com/@KavaPyramids"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Youtube size={17} /> Subscribe on YouTube
               </a>
             </motion.div>
           </Container>
@@ -749,7 +767,37 @@ function HomePage() {
           </Container>
         </section>
 
-        <motion.section id="gig-history" className="section gig-history" {...sceneProps(0, prefersReducedMotion)}>
+        <section className="trusted section section--compact">
+          <Container>
+            <SectionHeading label="Trusted By" title="Stages That Know Our Energy" align="center" />
+            <div className="trusted__grid">
+              {trustedVenues.map((venue, index) => {
+                const Tag = venue.website_url ? motion.a : motion.article;
+                const linkProps = venue.website_url
+                  ? { href: venue.website_url, target: "_blank", rel: "noopener noreferrer" }
+                  : {};
+                return (
+                  <Tag
+                    className="trusted-card"
+                    key={venue.name}
+                    {...linkProps}
+                    {...revealProps(index * 0.06, prefersReducedMotion)}
+                  >
+                    {venue.logo_url ? (
+                      <img className="trusted-card__logo" src={venue.logo_url} alt={venue.name} />
+                    ) : (
+                      <div className="trusted-card__mark">{venue.initials}</div>
+                    )}
+                    <h3>{venue.name}</h3>
+                    <p>{venue.type}</p>
+                  </Tag>
+                );
+              })}
+            </div>
+          </Container>
+        </section>
+
+        <motion.section id="gig-history" className="section section--dark gig-history" {...sceneProps(0, prefersReducedMotion)}>
           <Container>
             <SectionHeading label="Gig History" title="Every Stage, Every City" />
             <div className="gig-history__grid">
@@ -763,7 +811,7 @@ function HomePage() {
           </Container>
         </motion.section>
 
-        <section id="contact" className="section section--dark contact">
+        <section id="contact" className="section contact">
           <Container narrow>
             <SectionHeading
               label="Contact"
