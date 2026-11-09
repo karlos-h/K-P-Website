@@ -5,6 +5,13 @@ Format: newest version first.
 
 ---
 
+## v5.34.2 — Homepage title leads with Christchurch DJ hire
+
+### Changed
+- **Homepage title** is now `Christchurch DJ Hire | Kava & Pyramids, Hip Hop & R&B DJs`, including the social preview tags. Keyword research showed people booking in NZ search a place plus "DJ", while hip hop and R&B DJ searches have almost no volume
+
+---
+
 ## v5.34.1 — All 16 sets show with the live YouTube feed
 
 ### Fixed
