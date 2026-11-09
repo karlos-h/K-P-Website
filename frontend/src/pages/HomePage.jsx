@@ -455,9 +455,7 @@ function HomePage() {
                   creating a sound and presence that never fits neatly into one box.
                 </p>
                 <p>
-                  What started as a hobby quickly grew into a new sound for the duo and shared it with 
-                  the city of Christchurch, now they play out most weekends on the strip of Christchurch like
-                  Kong Bar and Original Sin, In 2025 that reach grew to Fiji and in 2026, Australia.
+                  What started as a hobby quickly grew into a new sound the duo took to Christchurch's clubs, where they held residencies at Original Sin and Kong Bar. In 2025 that reach grew to Fiji and in 2026, Australia.
                 </p>
                 <button className="button button--outline" onClick={() => scrollTo("Contact")}>
                   Book a Show
@@ -728,7 +726,7 @@ function HomePage() {
                   <a className="button button--gold" href="/epk">
                     View Full EPK
                   </a>
-                  <a className="button button--outline" href="mailto:kavapyramids@gmail.com">
+                  <a className="button button--outline" href="mailto:events@kavapyramids.com">
                     Email Us
                   </a>
                 </div>
@@ -770,7 +768,7 @@ function HomePage() {
             <SectionHeading
               label="Contact"
               title="Book Kava & Pyramids"
-              copy="We play clubs, festivals, 21sts, parties and private events across New Zealand, Australia and worldwide, and weddings on request. For bookings, event enquiries or press, send us the details below."
+              copy="We play clubs, festivals, university balls, 21sts, parties and private events across New Zealand, Australia and worldwide, and weddings on request. For bookings, event enquiries or press, send us the details below."
             />
             {formSent ? (
               <div className="form-success">
@@ -779,7 +777,7 @@ function HomePage() {
                 <p>Thanks for reaching out. Your enquiry has been sent successfully and we'll get back to you as soon as possible.
                   You can also contact us directly via email if you have any urgent questions or additional information to share.
                 </p>
-                <a className="button button--gold" href="mailto:kavapyramids@gmail.com">Open Email</a>
+                <a className="button button--gold" href="mailto:events@kavapyramids.com">Open Email</a>
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
@@ -847,7 +845,7 @@ function HomePage() {
 
       <footer>
         <p className="wordmark">KAVA &amp; PYRAMIDS</p>
-        <p>Christchurch, New Zealand · kavapyramids@gmail.com</p>
+        <p>Christchurch, New Zealand · events@kavapyramids.com</p>
         <div className="footer__links">
           <a href="/media-hub">Photo Hub</a>
           <a href="/epk">Press Kit</a>

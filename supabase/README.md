@@ -32,7 +32,6 @@ either one on its own.
   1. Sign up at resend.com (free tier), get an API key
   2. Set Edge Function secrets `RESEND_API_KEY` and `ENQUIRY_WEBHOOK_SECRET` (any random string, e.g. `openssl rand -hex 32`) — Dashboard → Edge Functions → Secrets, or `supabase secrets set`
   3. Database → Webhooks → Create: table `enquiries`, event `Insert`, HTTP Request to the `enquiry-notify` function URL, header `x-webhook-secret: <the value from step 2>`
-  4. Once a domain is verified in Resend, swap the function's `from` address off the `onboarding@resend.dev` sandbox sender
 
 ## Storage buckets
 
