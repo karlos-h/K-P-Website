@@ -5,6 +5,24 @@ Format: newest version first.
 
 ---
 
+## v5.33.1 — Events list brought up to date
+
+Data-only update to the `events` table in Supabase. No site code changed, and the new rows went live as soon as they were saved.
+
+### Added
+- **Past Highlights:** Original Sins (7 Nov 2026), Halloween Takeover at The Assembly (31 Oct 2026), Reztyled at Addington Raceway (7 Oct 2026), Andrew Andrews (13 Mar 2026)
+- **Upcoming:** Ara Institute 10th Anniversary Ball (12 Nov 2026), Original Sins (13 Nov 2026)
+- `CLAUDE.md` project guide, including the rules for which gigs get listed
+
+### Fixed
+- `city` typos: "Christchruch" on 24 events and "Austrailia" on Wonderland BNE
+- Two UC balls now read "Christchurch, New Zealand", matching every other Christchurch event
+
+### Changed
+- `.claude-flow/` and `.swarm/` added to `.gitignore` (local tool state, not project code)
+
+---
+
 ## v5.33.0 — Public email moves to events@, residency copy corrected, MusicBrainz link
 
 ### Changed
