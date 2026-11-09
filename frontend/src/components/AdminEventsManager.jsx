@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useIsMobile } from "../hooks/useIsMobile";
 
@@ -103,7 +103,7 @@ const BLANK = {
   title: "", sort_date: "", performance_time: "", location: "", city: "",
   type: "", status: "upcoming", ticket_url: "", humanitix_event_id: "",
   photo_gallery_url: "", photo_gallery_embeddable: false,
-  photographer_name: "", photographer_url: "",
+  photographer_name: "", photographer_url: "", extra_galleries: [],
 };
 
 // One labelled field inside a mobile event card. The desktop table gets its
@@ -290,6 +290,10 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
   const isMobile = useIsMobile();
   const [form, setForm] = useState({ ...BLANK, ...initial });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const extraGalleries = form.extra_galleries ?? [];
+  const setExtraGallery = (index, key, value) =>
+    set("extra_galleries", extraGalleries.map((g, i) => i === index ? { ...g, [key]: value } : g));
+  const inputStyle = { ...t.input, ...(isMobile ? t.inputMobile : {}) };
   const [galleryOpen, setGalleryOpen] = useState(
     !!(initial?.photo_gallery_url || initial?.photographer_name)
   );
@@ -422,6 +426,29 @@ function EventForm({ initial, onSave, onCancel, saving, allEvents = [] }) {
               placeholder="https://janesmith.photography"
             />
           </label>
+
+          {extraGalleries.map((gallery, index) => (
+            <Fragment key={index}>
+              <label style={{ ...t.label, gridColumn: "1 / -1" }}>
+                <span style={t.labelText}>Extra Gallery {index + 1} URL</span>
+                <input style={inputStyle} type="url" value={gallery.url || ""} onChange={e => setExtraGallery(index, "url", e.target.value)} placeholder="https://www.dropbox.com/..." />
+              </label>
+              <label style={t.label}>
+                <span style={t.labelText}>Photographer name</span>
+                <input style={inputStyle} value={gallery.photographer_name || ""} onChange={e => setExtraGallery(index, "photographer_name", e.target.value)} />
+              </label>
+              <label style={t.label}>
+                <span style={t.labelText}>Photographer URL</span>
+                <input style={inputStyle} type="url" value={gallery.photographer_url || ""} onChange={e => setExtraGallery(index, "photographer_url", e.target.value)} />
+              </label>
+              <button type="button" style={{ ...t.cancelBtn, gridColumn: "1 / -1", ...(isMobile ? t.touchTarget : {}) }} onClick={() => set("extra_galleries", extraGalleries.filter((_, i) => i !== index))}>
+                Remove Extra Gallery {index + 1}
+              </button>
+            </Fragment>
+          ))}
+          <button type="button" style={{ ...t.cancelBtn, gridColumn: "1 / -1", ...(isMobile ? t.touchTarget : {}) }} onClick={() => set("extra_galleries", [...extraGalleries, { url: "", photographer_name: "", photographer_url: "" }])}>
+            + Add Another Gallery
+          </button>
         </div>
       )}
 
@@ -472,6 +499,7 @@ export default function AdminEventsManager({ events, setEvents }) {
       photo_gallery_embeddable: !!form.photo_gallery_embeddable,
       photographer_name: form.photographer_name || null,
       photographer_url: form.photographer_url || null,
+      extra_galleries: (form.extra_galleries ?? []).filter(g => g.url?.trim()),
     };
 
     if (editingId && editingId !== "new") {

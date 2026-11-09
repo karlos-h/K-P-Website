@@ -17,7 +17,9 @@ Roughly:
 - **018–022** — the RLS pass: public read, anon-insert-only on submission tables, admin allowlist, `am_i_admin()` locked to authenticated
 - **023–027** — mailing-list sources, past-event status cron, private-schema grants
 - **028–032** — storage policy repair (see the note below)
-- **033–036** — Crowd POV: submissions, moderation, public display, reporting
+- **033–037** — Crowd POV: submissions, moderation, public display, reporting, report and upload caps
+- **038** — `event-photos` size limit raised to 20 MB
+- **039** — `events.extra_galleries`, for events with more than one photographer
 
 Migrations **029** and **030** are diagnostic-only and carry explicit warnings in
 their headers. They leave storage policies in a deliberately broken interim state

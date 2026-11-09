@@ -2,7 +2,7 @@
 
 Official site for **Kava & Pyramids**, a DJ duo based in Christchurch, New Zealand. It's a React single-page app on a Supabase backend, deployed on Netlify.
 
-**Live:** https://kavapyramids.com · **Current release:** v5.23.0 (see [CHANGELOG.md](CHANGELOG.md))
+**Live:** https://kavapyramids.com · **Current release:** v5.34.0 (see [CHANGELOG.md](CHANGELOG.md))
 
 ## What's on the site
 
@@ -36,14 +36,14 @@ frontend/          Vite + React SPA (the whole site)
   src/
     pages/         One file per route
     components/    Shared UI + the Admin* dashboard panels
-    hooks/         useCombinedGalleries, useEventGalleries
+    hooks/         useCombinedGalleries, useEventGalleries, useIsMobile
     lib/           Supabase client, admin check, image processing, motion presets
     data/          siteData.js (static copy: genres, venues, socials, timeline)
     styles/        Hand-written CSS
   public/          Favicon, EPK PDF, hero video, gallery placeholders, robots/sitemap
 supabase/
   migrations/      Numbered SQL migrations: schema, RLS, storage policies, cron
-  functions/       Edge Functions (humanitix-sync, crowd-pov-cleanup)
+  functions/       Edge Functions (humanitix-sync, crowd-pov-cleanup, enquiry-notify)
 docs/              Design and behaviour notes for specific sections
 netlify.toml       Build config, SPA fallback, security headers
 CHANGELOG.md       Release history, newest first
@@ -79,20 +79,21 @@ The Supabase URL and anon key have committed fallbacks in `frontend/src/lib/supa
 | `VITE_SUPABASE_ANON_KEY` | Supabase publishable/anon key |
 | `VITE_YOUTUBE_API_KEY` | Read-only, HTTP-referrer-restricted, for the Watch carousel |
 
-Server-side secrets (`HUMANITIX_API_KEY`, `SITE_URL` and the Crowd POV cleanup token) are kept in Supabase Edge Function secrets and Vault. None of them belong in this repo or in a `VITE_` variable, because anything prefixed `VITE_` is inlined into the public bundle.
+Server-side secrets (`HUMANITIX_API_KEY`, `SITE_URL`, `RESEND_API_KEY`, `ENQUIRY_WEBHOOK_SECRET` and the Crowd POV cleanup token) are kept in Supabase Edge Function secrets and Vault. None of them belong in this repo or in a `VITE_` variable, because anything prefixed `VITE_` is inlined into the public bundle.
 
 ## Database
 
 Migrations are numbered and applied in order. They're the source of truth for the schema, RLS policies, storage bucket rules and scheduled jobs.
 
-**Main tables:** `events`, `media_assets`, `mixes`, `stats`, `trusted_venues`, `enquiries`, `mailing_list`, `media_downloads`, `crowd_submissions`, `crowd_photos`, `crowd_photo_reports`.
+**Main tables:** `events`, `media_assets`, `mixes`, `stats`, `trusted_venues`, `enquiries`, `mailing_list`, `media_downloads`, `crowd_submissions`, `crowd_photos`, `crowd_photo_reports`, `admins`, `videos`, `epk_downloads`.
 
 **Storage buckets:** `event-photos` and `crowd-pov` are public. `crowd-pov-pending` is private and holds submissions waiting for review.
 
-There are two Edge Functions:
+There are three Edge Functions:
 
 - **humanitix-sync** pulls ticketed events from Humanitix. CORS is restricted by `SITE_URL` / `ALLOWED_ORIGINS`.
 - **crowd-pov-cleanup** is an hourly pg_cron job that deletes orphaned files from `crowd-pov-pending`. It authenticates with a shared token generated inside Postgres and stored in Vault.
+- **enquiry-notify** emails the booking inbox when a new enquiry is saved. A Supabase Database Webhook triggers it and authenticates with a shared secret.
 
 ## Deploying
 
@@ -112,7 +113,7 @@ The site is served at [kavapyramids.com](https://kavapyramids.com), and `kavapyr
 ## Media
 
 - Small, optimised launch assets go in `frontend/public/media/`.
-- Event photo galleries and short clips go in Supabase Storage.
+- Event photo galleries go in Supabase Storage.
 - Full DJ sets are embedded from YouTube or SoundCloud.
 - Camera originals stay in a private archive and are never committed.
 

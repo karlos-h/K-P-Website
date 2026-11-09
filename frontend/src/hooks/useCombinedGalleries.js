@@ -32,7 +32,7 @@ export function useCombinedGalleries() {
     // photo_gallery_url here would drop it before it could get one.
     const [assetsRes, eventsRes, crowdRes] = await Promise.all([
       supabase.from("media_assets").select("*").order("sort_order", { ascending: true }),
-      supabase.from("events").select("id,title,sort_date,date,photo_gallery_url,photo_gallery_embeddable,photographer_name,photographer_url"),
+      supabase.from("events").select("id,title,sort_date,date,photo_gallery_url,photo_gallery_embeddable,photographer_name,photographer_url,extra_galleries"),
       supabase.from("crowd_photos").select("*")
         .order("sort_order", { ascending: true })
         .order("approved_at", { ascending: true }),
@@ -85,6 +85,7 @@ export function useCombinedGalleries() {
             photo_gallery_embeddable: event.photo_gallery_embeddable,
             photographer_name: event.photographer_name,
             photographer_url: event.photographer_url,
+            extra_galleries: event.extra_galleries ?? [],
           }
         : null;
 
