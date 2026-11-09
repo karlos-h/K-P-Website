@@ -5,6 +5,25 @@ Format: newest version first.
 
 ---
 
+## v5.34.0 — Multiple gallery links per event, full video list, Halloween Takeover
+
+### Added
+- **Events can now have more than one external gallery.** Migration 039 adds `events.extra_galleries`, a JSON list of `{ url, photographer_name, photographer_url }`. The primary link stays in `photo_gallery_url`. Each extra gallery gets its own credit and "View Full Gallery" button on the Media Hub, and the admin event form has an "Add Another Gallery" control
+- **Halloween Takeover (31 Oct 2026) is on the Media Hub** with both albums: James Brown (Dropbox) and Mid-Nightedits (Lightroom)
+- **All 16 full sets are in the `videos` table.** Seven were missing, including Garden Party and the latest SinAfterDark set
+
+### Changed
+- **The Watch carousel no longer stops at the newest 5 sets.** The live YouTube path now shows every full set in the channel's latest 50 uploads, using the same two API calls as before
+
+### Fixed
+- Photographer credits: "Cam Dustan" is now "Cam Dunstan", and "Mid-night Edits" is now "Mid-Nightedits"
+
+### Notes
+- The YouTube feed returns 403 on the live site (`API_KEY_HTTP_REFERRER_BLOCKED`) because the key doesn't allow `kavapyramids.com`. Until that's added in Google Cloud, the Watch carousel uses the `videos` table, so a new upload needs a row there
+- Docs and project notes brought up to date: README, CLAUDE.md, `docs/media-workflow.md`, `supabase/README.md`
+
+---
+
 ## v5.33.1 — Events list brought up to date
 
 Data-only update to the `events` table in Supabase. No site code changed, and the new rows went live as soon as they were saved.
