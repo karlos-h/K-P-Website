@@ -186,27 +186,22 @@ export default function WatchCarousel() {
     let cancelled = false;
 
     const load = async () => {
-      // 1) Preferred: the channel's latest uploads, live from YouTube.
-      try {
-        const latest = await fetchLatestFromYouTube();
-        if (!cancelled && latest.length > 0) {
-          setVideos(latest);
-          return;
-        }
-      } catch (error) {
-        console.warn("YouTube feed unavailable — falling back to curated videos.", error);
-      }
+      const [latest, curated] = await Promise.all([
+        fetchLatestFromYouTube().catch((error) => {
+          console.warn("YouTube feed unavailable — using curated videos only.", error);
+          return [];
+        }),
+        supabase ? supabase.from("videos").select("*").then(({ data }) => data ?? []) : [],
+      ]);
 
-      // 2) Fallback: curated rows in the Supabase `videos` table.
-      if (supabase) {
-        const { data } = await supabase.from("videos").select("*");
-        if (!cancelled && data && data.length > 0) {
-          setVideos(data);
-          return;
-        }
-      }
+      // The feed only reaches the latest 50 uploads and Shorts use up that
+      // window, so the curated table supplies any older sets it misses (and
+      // everything when the feed is down). No extra YouTube quota either way.
+      const liveIds = new Set(latest.map((video) => video.youtube_id));
+      const merged = [...latest, ...curated.filter((video) => !liveIds.has(video.youtube_id))];
 
-      // 3) Otherwise keep the placeholder set already in state.
+      // Nothing from either source: keep the placeholder set already in state.
+      if (!cancelled && merged.length > 0) setVideos(merged);
     };
 
     load();
