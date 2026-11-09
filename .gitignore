@@ -1,9 +1,9 @@
 frontend/node_modules/
 frontend/dist/
 
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
+.env
+.env.*
+!.env.example
 
 .vscode/
 
@@ -20,3 +20,5 @@ media-originals/
 .claude/
 .claude-flow/
 .swarm/
+.cursor/
+CLAUDE.md
