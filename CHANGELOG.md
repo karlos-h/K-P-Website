@@ -5,6 +5,12 @@ Format: newest version first.
 
 ---
 
+## v5.34.9 — Remove the hidden footer link
+
+### Removed
+
+- The near-invisible sign-in link in the home page footer.
+
 ## v5.34.8 — Correct the year the duo formed
 
 ### Fixed

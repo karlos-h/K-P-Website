@@ -904,7 +904,6 @@ function HomePage() {
           ))}
         </div>
         <small>© {new Date().getFullYear()} Kava &amp; Pyramids. All rights reserved.</small>
-        <a href="/login" style={{ display: 'block', marginTop: '1.5rem', color: '#2a2a2a', fontSize: '0.6rem' }}>·</a>
       </footer>
     </div>
   );
