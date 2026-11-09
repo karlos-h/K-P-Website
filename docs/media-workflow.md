@@ -4,17 +4,14 @@
 
 1. Keep full-resolution originals in OneDrive or another private archive.
 2. Select and edit the strongest images.
-3. Export website versions at roughly 1600-2400 pixels on the long edge.
-4. Convert photographs to WebP or AVIF.
-5. Use `frontend/public/media/images` for a small curated launch collection.
-6. Move growing event galleries to the Supabase `gallery` bucket.
+3. Upload event photos through the photo upload panel in `/admin`. The browser resizes each one to 2000 pixels on the long edge, re-encodes it as JPEG and stores it in the Supabase `event-photos` bucket.
+4. Use `frontend/public/media/images` only for small static site assets, such as the logo and hero fallback.
 
 ## Videos
 
 1. Keep original footage in the private archive.
 2. Export a short muted hero loop for the homepage.
-3. Host full DJ sets on YouTube or Vimeo.
-4. Use Supabase Storage for short gallery clips where direct hosting is useful.
+3. Host full DJ sets on YouTube or SoundCloud.
 
 ## Naming
 

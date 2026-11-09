@@ -31,14 +31,15 @@ npm run lint      # eslint .
 ## Data / backend
 
 Key tables: `events`, `media_assets`, `mixes`, `stats`, `trusted_venues`, `enquiries`,
-`mailing_list`, `media_downloads`, `crowd_submissions`, `crowd_photos`, `crowd_photo_reports`.
+`mailing_list`, `media_downloads`, `crowd_submissions`, `crowd_photos`, `crowd_photo_reports`,
+`admins`, `videos`, `epk_downloads`.
 Storage buckets: `event-photos`, `crowd-pov` (public), `crowd-pov-pending` (private).
 Edge functions: `humanitix-sync`, `crowd-pov-cleanup`, `enquiry-notify`.
 All browser writes go straight to Supabase, authorised by RLS — not app code.
 
 Env vars (see `frontend/.env.example`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_YOUTUBE_API_KEY`.
 Supabase URL/anon key have committed fallbacks in `lib/supabase.js`; env vars only override.
-Server-side secrets (Humanitix key, cleanup token) live in Supabase Edge Function secrets/Vault, never here.
+Server-side secrets (Humanitix key, cleanup token, `RESEND_API_KEY`, `ENQUIRY_WEBHOOK_SECRET`) live in Supabase Edge Function secrets/Vault, never here.
 
 Events on the site are rows in `events`, so adding one needs no code change or deploy; pg_cron flips `upcoming` to `past` after `sort_date`.
 Listing rules: a set that starts after midnight uses the after-midnight date. Don't list private gigs or Bar 185 nights, and don't backfill 2025 gigs.
