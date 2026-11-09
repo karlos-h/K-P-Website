@@ -731,9 +731,9 @@ function HomePage() {
                 <SectionLabel>Press Kit</SectionLabel>
                 <h2>For Promoters &amp; Media</h2>
                 <p>
-                  Kava &amp; Pyramids formed in 2023, building on a friendship that started in 2018. 
-                  They stepped onto the Christchurch scene in 2024, and by 2025 were holding weekly 
-                  residencies at Original Sin and Kong Bar alongside international shows in Fiji.
+                  Kava &amp; Pyramids formed in 2024, building on a friendship that started in 2018.
+                  They went professional in 2025, with weekly residencies at Original Sin and Kong Bar
+                  and international shows in Fiji.
                 </p>
                 <p>
                   Known for high energy, open-format sets across Hip-Hop, R&amp;B, Pop, Afrobeats,
